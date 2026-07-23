@@ -584,9 +584,15 @@
   .sp-fig-row .sp-fig-n{ font-family: var(--mono); font-size:10.5px; color: var(--ink-faint); }
   .sp-more{ font-size:11px; color: var(--ink-faint); padding: 6px 9px; }
 
-  /* ---------- CSS2D persistent labels ---------- */
-  .node-label{ pointer-events:none; transform: translate(10px,-50%); }
-  .node-label .card{ background: rgba(15,13,10,0.88); border:1px solid var(--border-strong); border-left-width:3px; border-radius: 6px; padding: 5px 8px; font-size: 10.5px; line-height:1.35; color: var(--ink); max-width: 168px; backdrop-filter: blur(3px); box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+  /* ---------- CSS2D persistent labels ----------
+     La carte s'accroche AU BORD de son nœud (obj.center posé côté droit ou
+     gauche par updateLabels), jamais dessus : le margin fait le dégagement.
+     Elle naît éteinte et s'allume par la classe `on` — c'est le fondu que
+     updateLabels orchestre ; sans `on`, une carte est en train de partir. */
+  .node-label{ pointer-events:none; }
+  .node-label .card{ background: rgba(15,13,10,0.88); border:1px solid var(--border-strong); border-left-width:3px; border-radius: 6px; padding: 5px 8px; font-size: 10.5px; line-height:1.35; color: var(--ink); max-width: 168px; backdrop-filter: blur(3px); box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    margin: 0 10px; opacity: 0; transform: translateY(3px); transition: opacity .18s ease, transform .18s ease; }
+  .node-label.on .card{ opacity: 1; transform: none; }
   .node-label .card img{ width:100%; border-radius:4px; margin-bottom:4px; display:block; }
   .node-label.selected .card{ border-color: var(--gold); box-shadow: 0 0 0 1px rgba(201,162,75,0.3), 0 8px 22px rgba(0,0,0,0.5); }
 
@@ -1759,8 +1765,13 @@
         contourner —, chacun retenant parmi
         <b id="md-route-cands">…</b> chemins possibles celui qui coûte le moins
         face à ce qui est déjà posé : un croisement, un recouvrement, un nœud
-        rasé, le <b>frôlement</b> de deux traits parallèles trop serrés et la
-        longueur y pèsent chacun leur poids. Puis vient la <b>reprise</b>
+        rasé, le <b>frôlement</b> de deux traits parallèles trop serrés (compté
+        au mètre longé, pas à la rencontre), chaque <b>coude</b>, une
+        <b>approche</b> trop courte pour poser une pointe, et la longueur y
+        pèsent chacun leur poids. Les barres médianes s'aimantent sur une
+        <b>grille de pose</b> commune, comme les pistes d'un circuit imprimé :
+        deux traits voisins se suivent alors à pas régulier au lieu de se
+        coller au hasard. Puis vient la <b>reprise</b>
         (<i>rip‑up and reroute</i>) : chaque lien est retiré à son tour et
         reposé face au tracé complet, celui qu'il n'avait pas pu voir la première
         fois. On itère tant que ça bouge — ici <b id="md-route-passes">…</b>.</p>
@@ -3470,47 +3481,65 @@ function makeArrowRenderer(baseOpacity) {
   const _d = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Quaternion();
   const _m = new THREE.Matrix4(), _scale = new THREE.Vector3(1, 1, 1), _zero = new THREE.Vector3(0, 0, 0);
   const _up = new THREE.Vector3(0, 1, 0), _c = new THREE.Color();
-  const _q3 = { x: 0, y: 0, z: 0 };   // l'avant-dernier sommet du trajet
+  const _q3 = { x: 0, y: 0, z: 0 };   // sommet de trajet en cours de lecture
 
   function update() {
     for (let i = 0; i < slots.length; i++) {
       const { a, b, e, toB } = slots[i];
       const to = toB ? b : a;
       const visibility = edgeVisibilityFactor(e, a, b);
-      // L'AVANT-DERNIER sommet du trajet — la pointe s'aligne sur le DERNIER
-      // SEGMENT parcouru, pas sur la corde. Même fonction que les arêtes : une
-      // flèche qui vise là où le trait n'arrive pas se voit immédiatement.
-      // En tracé direct, ce sommet retombe sur le nœud de départ et l'on
-      // retrouve la direction de la corde, sans cas particulier.
-      const r_ = routeOf(e);
-      const back = (to.userData.baseScale || 1) + ARROW_GAP;
-      // Le DERNIER sous-segment (avant-dernier sommet → nœud) est l'approche : en
-      // circuit il est orthogonal, le biseau à 45° se trouve UN sommet plus tôt.
-      // On vise donc ce dernier sous-segment et on ne recule JAMAIS sur le biseau
-      // — c'était l'erreur d'avant, qui faisait pointer la flèche de travers.
-      routePointAt(a.position, b.position, r_, toB ? ROUTE_PTS - 2 : 1, _q3);
-      _d.set(to.position.x - _q3.x, to.position.y - _q3.y, to.position.z - _q3.z);
-      let len = _d.length();
-      // Approche dégénérée (le sommet retombe SUR le nœud, arêtes très courtes) :
-      // la direction n'existe pas. On se rabat sur la CORDE — l'orientation d'un
-      // tracé direct —, jamais sur le biseau qui pencherait la pointe à 45°.
-      if (len < 1e-2) {
-        const from = toB ? a : b;
-        _d.set(to.position.x - from.position.x, to.position.y - from.position.y, to.position.z - from.position.z);
-        len = _d.length();
-      }
       // Nœud éteint, ou segment replié sur lui-même (voir makeEdgeRenderer) :
-      // la pointe se replie de la même façon, à l'échelle zéro.
-      if (visibility <= 1e-4 || len < 1e-6) {
+      // la pointe se replie de la même façon, à l'échelle zéro — et on
+      // s'épargne la lecture du trajet.
+      if (visibility <= 1e-4) {
         _m.compose(_zero, _q.identity(), _zero);
         mesh.setMatrixAt(i, _m);
         continue;
       }
-      _d.divideScalar(len);
+      // Même fonction de lecture que les arêtes (routePointAt) : une flèche qui
+      // vise là où le trait n'arrive pas se voit immédiatement.
+      const r_ = routeOf(e);
+      const back = (to.userData.baseScale || 1) + ARROW_GAP;
+      // La pointe se pose PAR ABSCISSE CURVILIGNE : on remonte le trajet depuis
+      // le nœud visé, sommet par sommet (les mêmes que dessine l'arête), jusqu'à
+      // avoir parcouru `back`. Là où l'on retombe, on prend la position ET la
+      // tangente locale. La pointe est donc SUR son rail et ALIGNÉE avec lui,
+      // par construction — viser un sommet fixe la posait dans le vide dès que
+      // le dernier segment était plus court que le recul (approches courtes,
+      // fréquentes), penchée dans une direction où aucun trait ne passe.
+      const end = toB ? ROUTE_PTS - 1 : 0, step = toB ? -1 : 1;
+      let px = to.position.x, py = to.position.y, pz = to.position.z;
+      let rem = back, found = 0;
+      for (let k = end + step; k >= 0 && k < ROUTE_PTS; k += step) {
+        routePointAt(a.position, b.position, r_, k, _q3);
+        const dx = _q3.x - px, dy = _q3.y - py, dz = _q3.z - pz;
+        const seg = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (seg < 1e-9) continue;
+        if (seg >= rem) {
+          const t = rem / seg;
+          _p.set(px + dx * t, py + dy * t, pz + dz * t);
+          _d.set(-dx, -dy, -dz).divideScalar(seg);   // tangente locale, vers le nœud
+          found = 1;
+          break;
+        }
+        rem -= seg;
+        px = _q3.x; py = _q3.y; pz = _q3.z;
+      }
+      // Trajet plus court que le recul (arêtes minuscules) : direction de la
+      // CORDE, pointe à la surface du nœud — l'orientation d'un tracé direct.
+      if (!found) {
+        const from = toB ? a : b;
+        _d.set(to.position.x - from.position.x, to.position.y - from.position.y, to.position.z - from.position.z);
+        const len = _d.length();
+        if (len < 1e-6) {
+          _m.compose(_zero, _q.identity(), _zero);
+          mesh.setMatrixAt(i, _m);
+          continue;
+        }
+        _d.divideScalar(len);
+        _p.copy(to.position).addScaledVector(_d, -back);
+      }
       _q.setFromUnitVectors(_up, _d);
-      // La pointe se pose à la SURFACE du nœud visé, pas en son centre : sinon
-      // elle disparaîtrait dans la sphère.
-      _p.copy(to.position).addScaledVector(_d, -back);
       _scale.setScalar(visibility);
       _m.compose(_p, _q, _scale);
       mesh.setMatrixAt(i, _m);
@@ -3724,6 +3753,7 @@ function buildLegendRow(axis, { key, name, color, count, hint, group, onGo }) {
     if (g.pinned.has(key)) { g.pinned.delete(key); pinBtn.classList.remove('pinned'); }
     else { g.pinned.add(key); pinBtn.classList.add('pinned'); }
     updatePinInfo();
+    syncUrl();   // les épingles se citent (pin.axe=…), comme les filtres
   });
   g.listEl.appendChild(row);
   g.rows.set(key, row);
@@ -3838,6 +3868,8 @@ function syncLegendRows() {
       const off = g.hidden.has(key);
       row.classList.toggle('off', off);
       row.querySelector('input').checked = !off;
+      // Les épingles aussi : restaurées d'une URL, elles doivent allumer leur 🏷.
+      row.querySelector('.pin-btn').classList.toggle('pinned', g.pinned.has(key));
     });
   });
 }
@@ -3890,6 +3922,7 @@ document.getElementById('pin-clear').addEventListener('click', () => {
   const spPin = document.getElementById('sp-pin-check'); if (spPin) spPin.checked = false;
   updateLabels();
   updatePinInfo();
+  syncUrl();   // plus d'épingles : l'URL cesse de les citer
 });
 
 /**
@@ -4574,7 +4607,13 @@ const meshToGroup = new Map(pickableMeshes.map(g => [g.userData.mainMesh, g]));
 // curseur : le POINTEUR a bougé, ou la CAMÉRA (l'OrbitControls le dit).
 // Curseur immobile sur scène immobile = zéro raycast, au lieu de 60/s.
 let hoverDirty = true;
+// Tant qu'AUCUN pointeur ne s'est manifesté, il n'y a pas de survol : le
+// vecteur `pointer` vaut (0,0) — le CENTRE de l'écran —, et l'infobulle,
+// jamais positionnée, s'afficherait dans le coin haut-gauche sur le titre.
+// C'est le cas réel du tactile (aucun pointermove avant le premier toucher).
+let pointerSeen = false;
 function onPointerMove(ev) {
+  pointerSeen = true;
   pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
   tooltip.style.left = (ev.clientX + 16) + 'px';
@@ -7965,6 +8004,9 @@ document.getElementById('proximity-toggle').addEventListener('change', (e) => {
 document.getElementById('proximity-slider').addEventListener('input', (e) => {
   state.proximityScale = 0.15 + (e.target.value / 100) * 1.85; // ~0.15x -> 2x
 });
+// L'URL au LÂCHER du curseur seulement (`change`), pas à chaque cran traversé :
+// la densité se cite (lbs=…), mais on ne réécrit pas l'adresse en continu.
+document.getElementById('proximity-slider').addEventListener('change', () => syncUrl());
 
 /**
  * Repliée par défaut, la légende se déplie au survol le temps qu'on la
@@ -8780,7 +8822,7 @@ function firstVisibleHit(hits) {
 }
 
 function updateHover() {
-  if (!hoverDirty) return;
+  if (!pointerSeen || !hoverDirty) return;
   // Curseur sur la liste de suggestions : elle pilote la prévisualisation, le survol
   // de la carte se met en retrait (sans consommer hoverDirty, il reprend en sortant).
   if (overPathSearch) return;
@@ -8848,19 +8890,69 @@ let frameCount = 0;
 // la restauration d'une URL profonde traversent volontairement des cadrages
 // intermédiaires : y projeter les cartes CSS2D les entassait sous le titre.
 let labelsSuppressed = true;
+// Les seuils de distance sont plus GÉNÉREUX qu'avant le placement écran : ils
+// n'ont plus à prévenir l'entassement (le poseur glouton s'en charge), juste à
+// éviter de proposer tout le corpus à chaque image. C'est la PLACE À L'ÉCRAN
+// qui règle la densité désormais, et donc le zoom.
 const BASE_MAX_LABELS = 55;
-const BASE_PROX_DIST = { item: 34, image: 55 };
+const BASE_PROX_DIST = { item: 52, image: 78 };
+
+/**
+ * Le PLACEMENT des étiquettes : l'écran est un espace rare, on ne s'y écrase
+ * plus. Chaque candidate est projetée, reçoit un rectangle (mesuré sur sa
+ * vraie carte dès la première apparition), et se pose en glouton par ordre de
+ * priorité — sélection, voisins de la sélection, épingles, proximité. Une
+ * carte qui chevaucherait une carte déjà posée tente d'abord le CÔTÉ GAUCHE
+ * du nœud, puis se tait : elle reparaîtra au prochain zoom, quand la place
+ * existe. C'est le zoom qui règle la densité, pas un rideau qui s'écrase.
+ *
+ * La carte s'accroche À CÔTÉ de son nœud (jamais dessus : posée au centre,
+ * elle cachait le post-it ET ses liens), garde son côté d'une image à l'autre
+ * (labelSide — une étiquette qui saute de gauche à droite fatigue), et
+ * s'allume/s'éteint en fondu court (classe `on`) plutôt qu'en claquement.
+ */
+const labelSize = new Map();   // id → {w,h} : mesure UNIQUE de la carte réelle
+const labelSide = new Map();   // id → 0 droite · 1 gauche (stabilité du côté)
+const labelFade = new Map();   // id → instant du dernier « éteins-toi » (fondu)
+const labelPendingOn = [];     // cartes tout juste posées : `on` au prochain rendu
+const _lblPt = new THREE.Vector3();
+const LBL_PAD = 4;             // respiration minimale entre deux cartes (px)
+const LBL_GAP = 10;            // dégagement nœud → carte (le margin de .card)
+const LBL_FADE_MS = 260;       // durée du fondu de sortie avant retrait du DOM
+// L'interface fixe que les cartes n'ont pas le droit de recouvrir. Les
+// superpositions plein écran (fiche méthode, ∑) n'y sont pas : elles passent
+// AU-DESSUS de tout, une carte dessous ne gêne personne.
+const LBL_UI_BLOCKERS = ['#title-block', '#search-wrap', '#legend', '#path-panel',
+                         '#detail-panel', '#group-panel', '#hint', '#ego-bar', '#search-panel'];
+
+// Avant la première mesure : estimation depuis la longueur du texte (police
+// 10,5 px, gabarit max 168 px). Grossière mais du bon ordre — remplacée par la
+// mesure réelle dès que la carte s'est affichée une fois.
+function estimateLabelSize(n) {
+  const chars = (n.label || '').length;
+  const wTxt = Math.min(152, Math.max(24, chars * 5.4));
+  const lines = Math.max(1, Math.ceil((chars * 5.4) / 152));
+  return { w: wTxt + 18, h: lines * 14.2 + 12 + (n.image ? 96 : 0) };
+}
 
 function updateLabels() {
   if (labelsSuppressed) {
-    labelObjects.forEach(({ obj }) => { obj.visible = false; });
+    labelObjects.forEach(({ obj, div }) => { obj.visible = false; div.classList.remove('on'); });
+    labelFade.clear();
     return;
   }
+  const now = performance.now();
   const selNode = state.selectedId ? nodeById.get(state.selectedId) : null;
   const alwaysIds = new Set();
   if (selNode) {
     alwaysIds.add(selNode.id);
-    (adjacency.get(selNode.id) || []).forEach(x => alwaysIds.add(x.id));
+    // Les voisins passent par les MÊMES portes que toute étiquette (filtres
+    // cumulés + recentrage) : un voisin dont la catégorie est décochée n'a
+    // plus de nœud visible — son étiquette flotterait sur du vide.
+    (adjacency.get(selNode.id) || []).forEach(x => {
+      const nb = nodeById.get(x.id);
+      if (nb && nodeMatchesFilter(nb) && egoVisible(nb)) alwaysIds.add(x.id);
+    });
   }
 
   // Épingler une catégorie ne doit montrer que ce qui est DÉJÀ visible : si
@@ -8898,10 +8990,22 @@ function updateLabels() {
   const proxDistOf = (n, scale) =>
     BASE_PROX_DIST[n.kind] * scale * (1 + Math.min(n.degree || 0, 8) * 0.12);
 
-  let proximityIds = new Set();
+  // ── Les candidates, par priorité : qui a le plus le droit de parler.
+  const camPos = camera.position;
+  const scale = state.proximityScale;
+  const candidates = [];   // { id, prio, ord } — tri stable (prio, ord, id)
+  const seen = new Set();
+  const propose = (id, prio, ord) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    candidates.push({ id, prio, ord });
+  };
+  alwaysIds.forEach(id => propose(id, id === state.selectedId ? 0 : 1, 0));
+  pinnedIds.forEach(id => {
+    const n = nodeById.get(id);
+    propose(id, 2, n?.__group ? n.__group.position.distanceTo(camPos) : 0);
+  });
   if (state.proximityEnabled) {
-    const camPos = camera.position;
-    const scale = state.proximityScale;
     const maxLabels = Math.round(BASE_MAX_LABELS * scale);
     const withDist = leafGroups
       .filter(g => nodeMatchesFilter(g.userData.node) && egoVisible(g.userData.node))
@@ -8914,14 +9018,96 @@ function updateLabels() {
       // le budget est plein, il va au nœud qui mérite le plus son étiquette, non
       // au plus proche du nez de la caméra.
       .sort((a, b) => (a.d / a.seuil) - (b.d / b.seuil));
-    const budget = Math.max(0, maxLabels - alwaysIds.size - pinnedIds.size);
-    withDist.slice(0, budget).forEach(o => proximityIds.add(o.g.userData.node.id));
+    const budget = Math.max(0, maxLabels - seen.size);
+    withDist.slice(0, budget).forEach((o, i) => propose(o.g.userData.node.id, 3, i));
+  }
+  candidates.sort((u, v) => u.prio - v.prio || u.ord - v.ord
+    || (u.id < v.id ? -1 : u.id > v.id ? 1 : 0));
+
+  // ── Projection écran et pose gloutonne : droite d'abord, gauche sinon,
+  //    silence si les deux côtés sont pris (sauf la sélection, qui prime).
+  const sw = window.innerWidth, sh = window.innerHeight;
+  const keptRects = [];
+  // L'interface est LÀ AVANT les étiquettes : titre, recherche, légende,
+  // panneaux et invite réservent leur place, une carte ne se pose pas dessous.
+  for (const sel of LBL_UI_BLOCKERS) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) keptRects.push({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom });
+  }
+  const keptSide = new Map();   // id → côté retenu, pour l'application ci-dessous
+  for (const c of candidates) {
+    const n = nodeById.get(c.id);
+    const g = n && n.__group;
+    if (!g) continue;
+    _lblPt.copy(g.position).project(camera);
+    if (_lblPt.z > 1 || _lblPt.z < -1) continue;   // derrière la caméra
+    const sx = (_lblPt.x * 0.5 + 0.5) * sw;
+    const sy = (-_lblPt.y * 0.5 + 0.5) * sh;
+    if (sx < -220 || sx > sw + 220 || sy < -120 || sy > sh + 120) continue;
+    const s = labelSize.get(c.id) || estimateLabelSize(n);
+    const w = s.w + LBL_GAP, h = s.h;
+    const pref = labelSide.get(c.id) || 0;
+    let side = -1, rect = null;
+    for (const trySide of (pref === 0 ? [0, 1] : [1, 0])) {
+      const r = trySide === 0
+        ? { x0: sx, x1: sx + w, y0: sy - h / 2, y1: sy + h / 2 }
+        : { x0: sx - w, x1: sx, y0: sy - h / 2, y1: sy + h / 2 };
+      let free = true;
+      for (const k of keptRects) {
+        if (r.x0 < k.x1 + LBL_PAD && r.x1 > k.x0 - LBL_PAD
+          && r.y0 < k.y1 + LBL_PAD && r.y1 > k.y0 - LBL_PAD) { free = false; break; }
+      }
+      if (free) { side = trySide; rect = r; break; }
+    }
+    if (side < 0) {
+      if (c.prio > 0) continue;   // la place manque : on se tait, le zoom rendra la parole
+      side = pref;                // …sauf la sélection, qui ne se tait jamais
+      rect = side === 0
+        ? { x0: sx, x1: sx + w, y0: sy - h / 2, y1: sy + h / 2 }
+        : { x0: sx - w, x1: sx, y0: sy - h / 2, y1: sy + h / 2 };
+    }
+    labelSide.set(c.id, side);
+    keptRects.push(rect);
+    keptSide.set(c.id, side);
   }
 
+  // ── Application, avec FONDU : une carte qui se tait s'éteint en douceur
+  //    (classe `on` retirée), puis quitte le DOM une fois le fondu joué.
   labelObjects.forEach(({ obj, div }, id) => {
-    const show = alwaysIds.has(id) || pinnedIds.has(id) || proximityIds.has(id);
-    obj.visible = show;
-    if (show) div.classList.toggle('selected', selNode && id === selNode.id);
+    const side = keptSide.get(id);
+    if (side !== undefined) {
+      // L'ancrage au BORD du nœud, côté choisi — jamais posée dessus.
+      obj.center.set(side === 0 ? 0 : 1, 0.5);
+      labelFade.delete(id);
+      if (!obj.visible) {
+        obj.visible = true;   // apparaît éteinte : `on` au prochain rendu → fondu d'entrée
+        div.classList.remove('on');
+        labelPendingOn.push(div);
+      } else div.classList.add('on');
+      div.classList.toggle('selected', selNode && id === selNode.id);
+    } else if (obj.visible) {
+      const t0 = labelFade.get(id);
+      if (t0 === undefined) { labelFade.set(id, now); div.classList.remove('on'); }
+      else if (now - t0 > LBL_FADE_MS) { obj.visible = false; labelFade.delete(id); }
+    }
+  });
+  if (labelPendingOn.length) {
+    // Deux rendus d'écart : la carte doit être PEINTE éteinte avant que `on`
+    // n'arrive, sans quoi la transition ne joue pas et elle claque.
+    const fresh = labelPendingOn.splice(0);
+    requestAnimationFrame(() => requestAnimationFrame(() => fresh.forEach(d => d.classList.add('on'))));
+  }
+
+  // ── Mesure UNIQUE des cartes qui viennent de s'afficher : leur vraie taille
+  //    remplace l'estimation au prochain passage (le texte d'une carte ne
+  //    change jamais, une mesure suffit pour toujours).
+  keptSide.forEach((side, id) => {
+    if (labelSize.has(id)) return;
+    const { card } = labelObjects.get(id);
+    const w = card.offsetWidth, h = card.offsetHeight;
+    if (w > 0 && h > 0) labelSize.set(id, { w: w + 2, h: h + 2 });
   });
 }
 
@@ -8967,11 +9153,14 @@ animate();
 // ============================================================ État d'URL
 /**
  * L'URL mémorise TOUT l'état de lecture, pas seulement le nœud ouvert : la
- * disposition, l'axe qui colore la carte, les filtres de chaque axe, la zone
- * mise en lumière, un recentrage (nœud + profondeur), les chemins tracés
- * (chaque arbre : origine + arrivées — jamais les étapes, redéductibles par
- * BFS). Un lien cité dans un article doit rouvrir EXACTEMENT ce qu'on a vu,
- * pas la carte par défaut.
+ * disposition, l'axe qui colore la carte, les filtres ET les épingles de
+ * chaque axe, les étiquettes (bascule et densité), la zone mise en lumière,
+ * un recentrage (nœud + profondeur), les chemins tracés (chaque arbre :
+ * origine, points de passage et arrivées, couleur et variante). Un lien cité
+ * dans un article doit rouvrir EXACTEMENT ce qu'on a vu, pas la carte par
+ * défaut. Ce qui ne se cite pas est éphémère par nature : panneaux
+ * dépliés/repliés, survols, armements en cours, pose exacte de la caméra
+ * (on cite des destinations, pas des poses).
  *
  * Chaque champ n'apparaît QUE s'il diffère de l'état de départ : citer un
  * nœud seul reste `#n=id`, inchangé depuis avant cette fonctionnalité — la
@@ -8998,9 +9187,18 @@ function encodeStateHash() {
     const hidden = LEGEND[ax].hidden;
     if (hidden.size) parts.push('hide.' + ax + '=' + [...hidden].map(encodeURIComponent).join(','));
   });
+  // Les épingles d'étiquettes : le même geste que les filtres, la même écriture.
+  AXIS_KEYS.forEach(ax => {
+    const pinned = LEGEND[ax].pinned;
+    if (pinned.size) parts.push('pin.' + ax + '=' + [...pinned].map(encodeURIComponent).join(','));
+  });
   // Les étiquettes générales sont actives par défaut : seule leur désactivation
   // allonge l'URL. La case propre à une recherche n'a de sens qu'avec `q=`.
   if (!state.proximityEnabled) parts.push('lb=0');
+  // La densité d'étiquettes (le curseur), citée en cran de curseur (0-100) pour
+  // revenir EXACTEMENT où on l'a laissée — 46 est le cran d'accueil (≈ 1,0×).
+  const lbs = Math.round((state.proximityScale - 0.15) / 1.85 * 100);
+  if (lbs !== 46) parts.push('lbs=' + lbs);
   if (state.focusKey) parts.push('focus=' + state.focusAxis + ':' + encodeURIComponent(state.focusKey));
   // Une recherche VALIDÉE (volet ouvert), pas la saisie flottante — celle-ci
   // n'est qu'un état de passage, rien à citer avant qu'on ait pressé Entrée.
@@ -9075,10 +9273,28 @@ function applyUrlState(u, onDone) {
     // ensemble nœuds, compteur ET tampons WebGL des arêtes dans la même image.
     updateVisuals();
   }
+  if (u.pin) {
+    Object.entries(u.pin).forEach(([ax, keys]) => {
+      if (!LEGEND[ax]) return;
+      LEGEND[ax].pinned.clear();
+      keys.forEach(k => {
+        if (LEGEND[ax].rows.has(k)) LEGEND[ax].pinned.add(k);
+        else console.warn(`[état d’URL] épingle « ${ax}:${k} » introuvable, ignorée.`);
+      });
+    });
+    syncLegendRows();   // rallume aussi les 🏷 des lignes épinglées
+    updatePinInfo();
+    updateLabels();
+  }
   if (typeof u.labels === 'boolean') {
     state.proximityEnabled = u.labels;
     document.getElementById('proximity-toggle').checked = u.labels;
     updateMini();
+    updateLabels();
+  }
+  if (typeof u.labelScale === 'number') {
+    document.getElementById('proximity-slider').value = u.labelScale;
+    state.proximityScale = 0.15 + (u.labelScale / 100) * 1.85;
     updateLabels();
   }
   // La recherche AVANT le focus/recentrage/chemins : elle dépend des filtres

@@ -34,8 +34,9 @@ export function parseStateHash(hash, onWarning = message => console.warn(message
     else if (k === 'sc') out.sc = v;
     else if (k === 'ax') out.ax = v;
     else if (k === 'lb' && (v === '0' || v === '1')) out.labels = v !== '0';
+    else if (k === 'lbs' && /^\d{1,3}$/.test(v)) out.labelScale = Math.min(100, parseInt(v, 10));
     else if (k === 'qp' && v === '1') out.searchPinned = true;
-    else if (k.startsWith('hide.')) {
+    else if (k.startsWith('hide.') || k.startsWith('pin.')) {
       const values = [];
       let invalid = false;
       v.split(',').filter(Boolean).forEach(part => {
@@ -44,7 +45,9 @@ export function parseStateHash(hash, onWarning = message => console.warn(message
         else values.push(decoded);
       });
       // Une liste entièrement corrompue ne doit pas effacer un filtre valide.
-      if (!invalid || values.length) (out.hide || (out.hide = {}))[k.slice(5)] = values;
+      const field = k.startsWith('hide.') ? 'hide' : 'pin';
+      const axis = k.slice(field.length + 1);
+      if (!invalid || values.length) (out[field] || (out[field] = {}))[axis] = values;
     } else if (k === 'focus') {
       const i = v.indexOf(':');
       if (i > 0) {
@@ -64,8 +67,14 @@ export function parseStateHash(hash, onWarning = message => console.warn(message
         if (decoded !== null) out.ego = { id: decoded, depth: parseInt(v.slice(i + 1), 10) };
       }
     } else if (k === 'path') {
+      // ⚠ Le séparateur d'étapes « > » fait partie des caractères que les
+      // navigateurs RÉÉCRIVENT en %3E dans un fragment (jeu d'échappement des
+      // fragments de l'URL Standard) : l'adresse partagée ne contient donc
+      // jamais le « > » qu'on a écrit, et un lien « passant par… » revenait
+      // amputé de ses étapes. On rétablit le séparateur AVANT tout découpage —
+      // les identifiants, numériques, ne peuvent pas contenir ce motif.
       const paths = [];
-      v.split(';').filter(Boolean).forEach(seg => {
+      v.replace(/%3e/gi, '>').split(';').filter(Boolean).forEach(seg => {
         const i = seg.indexOf(':');
         if (i <= 0) return;
         const origin = safeDecode(seg.slice(0, i), 'path.origin', warn);

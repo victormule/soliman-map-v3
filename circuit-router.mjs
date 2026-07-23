@@ -32,23 +32,49 @@
 export const ROUTE = {
   points: 6,        // sommets par arête, TOUJOURS (pire cas : Z à deux coudes biseautés)
   chamfer: 2.6,     // longueur du biseau à 45° qui coupe un coude
-  splits: [-0.25, 0.35, 0.5, 0.65, 1.25],  // où couper un Z. Hors de [0,1], le
-                    // trait SORT du rectangle a-b : l'échappée qui permet de
-                    // contourner une zone dense au lieu d'y choisir le moins pire.
+  splits: [-0.5, -0.25, 0.15, 0.3, 0.42, 0.5, 0.58, 0.7, 0.85, 1.25, 1.5],
+                    // où couper un Z. Hors de [0,1], le trait SORT du rectangle a-b :
+                    // l'échappée qui permet de contourner une zone dense au lieu d'y
+                    // choisir le moins pire. La table est passée de 5 à 11 valeurs :
+                    // ce sont les CANAUX parmi lesquels une piste peut s'écarter de
+                    // ses voisines — avec 5, deux traits voisins n'avaient souvent
+                    // aucune case libre entre se coller et tout contourner.
   wCross: 1.0,      // ce que coûte un croisement
   wOverlap: 2.0,    // ce que coûte un RECOUVREMENT (deux traits confondus se
-                    // lisent comme un seul : pire qu'un croisement, qui se voit)
+                    // lisent comme un seul : pire qu'un croisement, qui se voit).
+                    // ⚠ Au CAS, jamais à la longueur — mesuré (2026-07) : facturer
+                    // les rails partagés à l'unité (0,05 à 1,0/u) dégrade TOUT
+                    // (croisements +10 %, frôlements ×4, nœuds rasés +15 %). Deux
+                    // liens qui empruntent le même rail avant de se séparer, c'est
+                    // le FAISCEAU qui rend le reste du plan propre — en additif,
+                    // le trait partagé se lit plus lumineux, comme un tronc commun.
   wNode: 3.0,       // ce que coûte un nœud traversé — le plus lourd : un trait
                     // qui passe sous un post-it laisse croire à un lien absent
   wLen: 0.004,      // ce que coûte la longueur, à départager seulement
   space: 1.6,       // ÉCARTEMENT visé entre deux traits PARALLÈLES : en deçà, ils
                     // se lisent comme un couloir confus (l'allure « circuit imprimé »
                     // veut des pistes espacées, pas un peigne). Purement de lecture.
-  wSpace: 0.3,      // ce que coûte un tel frôlement. Sous wCross (1) : jamais au prix
-                    // d'un croisement — on préfère toujours écarter que décroiser.
-                    // 0,3 mesuré comme l'optimum : −9 % de frôlements SANS raser un
-                    // nœud de plus (au contraire : les traits qui s'écartent cessent
-                    // aussi de raser des post-its). Au-delà, on rase pour écarter.
+  wSpace: 0.05,     // ce que coûte le frôlement, PAR UNITÉ de longueur longée : deux
+                    // traits qui se collent sur 100 unités pèsent cent fois plus que
+                    // sur une — c'est ce qui a dissous les « autoroutes » du milieu
+                    // de carte, que l'ancien comptage par paire (une paire = 1,
+                    // qu'elle se longe sur 3 ou 300 unités) laissait intactes.
+                    // 0,05 balayé avec la grille de pose : au-delà, on recroise
+                    // pour s'écarter ; en deçà, le peigne revient.
+  wBend: 0.25,      // ce que coûte un COUDE : à service égal, un L bat un Z — moins
+                    // d'angles, l'œil suit. (Un vrai coude : deux segments non nuls
+                    // qui tournent, jamais les sommets fantômes d'un tracé rectiligne.)
+  stub: 5,          // longueur d'approche visée AVANT le premier coude, côté nœud.
+                    // C'est la règle du « pad escape » des circuits imprimés — et ce
+                    // qui garantit qu'une pointe de flèche (≈2,4 u, biseau déduit)
+                    // repose sur un segment droit, orthogonal, aligné sur son rail.
+  wStub: 0.9,       // ce que coûte une approche trop courte, en proportion du manque
+                    // (une approche de 4,5 u sur 5 coûte presque rien ; 0,5 u, presque tout).
+  pitch: 2.2,       // pas de la grille de pose des barres de Z (0 = libre) —
+                    // voir buildCandidates : c'est lui qui régularise les nappes.
+                    // 2,2 balayé contre 1,6/1,8/2,6 : le meilleur trio
+                    // croisements/frôlements/nœuds rasés, et un pas plus large que
+                    // `space` (1,6), donc deux rails voisins ne se « frôlent » pas.
   clear: 0.6,       // marge gardée autour d'un nœud
   cell: 8,          // maille de la grille d'accélération
   ripup: 8,         // reprises (rip-up and reroute) — plafond de TEMPS, pas
@@ -214,6 +240,37 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
    */
   function costOf(P, np, srcIdx, dstIdx, owner, limit = Infinity) {
     let cross = 0, over = 0, hits = 0, hug = 0, len = 0;
+    // ── Coûts de FORME, lus sur la polyligne seule ─────────────────────────
+    // Les coudes : un vrai changement de direction entre deux segments non
+    // nuls (un candidat dégénéré — nœuds alignés — a des sommets fantômes qui
+    // ne tournent pas, et ne doit rien payer).
+    // L'approche : la longueur droite entre chaque extrémité et son premier
+    // coude. En deçà de `stub`, pénalité proportionnelle au manque — c'est la
+    // règle d'échappée de pastille des circuits imprimés, et ce qui donne aux
+    // pointes de flèche un rail droit où se poser.
+    let shape = 0;
+    {
+      let firstBend = -1, lastBend = -1;
+      for (let i = 1; i < np - 1; i++) {
+        const d1x = P[i*2] - P[i*2-2], d1y = P[i*2+1] - P[i*2-1];
+        const d2x = P[i*2+2] - P[i*2], d2y = P[i*2+3] - P[i*2+1];
+        if ((d1x*d1x + d1y*d1y) < 1e-12 || (d2x*d2x + d2y*d2y) < 1e-12) continue;
+        if (d1x*d2x + d1y*d2y < 1e-9) {
+          shape += O.wBend;
+          if (firstBend < 0) firstBend = i;
+          lastBend = i;
+        }
+      }
+      if (O.wStub && firstBend >= 0) {
+        let f = 0;
+        for (let i = 0; i < firstBend; i++) f += Math.hypot(P[i*2+2] - P[i*2], P[i*2+3] - P[i*2+1]);
+        let l = 0;
+        for (let i = lastBend; i < np - 1; i++) l += Math.hypot(P[i*2+2] - P[i*2], P[i*2+3] - P[i*2+1]);
+        if (f < O.stub) shape += O.wStub * (1 - f / O.stub);
+        if (l < O.stub) shape += O.wStub * (1 - l / O.stub);
+      }
+    }
+    if (shape >= limit) return Infinity;
     const nodeTick = ++tick;
     for (let i = 0; i < np - 1; i++) {
       const ax = P[i * 2], ay = P[i * 2 + 1], bx = P[i * 2 + 2], by = P[i * 2 + 3];
@@ -240,22 +297,26 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
           if (m === 2) { over++; continue; }
           // FRÔLEMENT : ni croisement ni recouvrement, mais deux traits
           // PARALLÈLES qui se longent à moins de `space` — le peigne serré que
-          // l'œil ne démêle plus. On le compte pour que le routeur préfère, à
-          // égalité de croisements, la voie qui S'ÉCARTE. Jamais au prix d'un
-          // croisement (wSpace < wCross) : écarter est un confort, décroiser un dû.
+          // l'œil ne démêle plus. Compté PAR UNITÉ DE LONGUEUR longée : c'est
+          // la longueur du couloir commun qui fait le peigne, pas son existence
+          // (l'ancien comptage par paire laissait les longues « autoroutes »
+          // parfaitement indolores). Toujours sous wCross par unité courte :
+          // écarter est un confort, décroiser un dû.
           if (ah && sy1[s] > sy2[s] - 1e-6 && sy1[s] < sy2[s] + 1e-6) {
             const gap = ay > sy1[s] ? ay - sy1[s] : sy1[s] - ay;
             if (gap > 1e-6 && gap < O.space) {
               const lo = ax < bx ? ax : bx, hi = ax < bx ? bx : ax;
               const slo = sx1[s] < sx2[s] ? sx1[s] : sx2[s], shi = sx1[s] < sx2[s] ? sx2[s] : sx1[s];
-              if ((hi < shi ? hi : shi) - (lo > slo ? lo : slo) > 0.5) hug++;
+              const ov = (hi < shi ? hi : shi) - (lo > slo ? lo : slo);
+              if (ov > 0.5) hug += ov;
             }
           } else if (av && sx1[s] > sx2[s] - 1e-6 && sx1[s] < sx2[s] + 1e-6) {
             const gap = ax > sx1[s] ? ax - sx1[s] : sx1[s] - ax;
             if (gap > 1e-6 && gap < O.space) {
               const lo = ay < by ? ay : by, hi = ay < by ? by : ay;
               const slo = sy1[s] < sy2[s] ? sy1[s] : sy2[s], shi = sy1[s] < sy2[s] ? sy2[s] : sy1[s];
-              if ((hi < shi ? hi : shi) - (lo > slo ? lo : slo) > 0.5) hug++;
+              const ov = (hi < shi ? hi : shi) - (lo > slo ? lo : slo);
+              if (ov > 0.5) hug += ov;
             }
           }
         }
@@ -269,16 +330,23 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
       }
       // Élagage, une fois par segment : assez tôt pour trancher, assez rare
       // pour ne rien coûter.
-      if (cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen >= limit) return Infinity;
+      if (shape + cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen >= limit) return Infinity;
     }
     outCross = cross; outOver = over; outHits = hits;
-    return cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen;
+    return shape + cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen;
   }
 
   // ── Les chemins possibles : deux L (un coude), deux Z par partage ─────────
   const CAND = candidateCount(O);
   const candBuf = new Float64Array(CAND * 8);   // 4 points max par candidat
   const candLen = new Int32Array(CAND);
+  // La barre du Z s'aimante sur une GRILLE DE POSE absolue (multiples de
+  // `pitch`) : deux pistes voisines tombent alors soit sur le MÊME rail —
+  // recouvrement, lourdement facturé, aussitôt fui — soit sur deux rails
+  // distants d'exactement un pas. C'est ce qui donne aux nappes parallèles le
+  // pas RÉGULIER d'un bus de circuit imprimé, au lieu d'un peigne au hasard.
+  // Les L ne s'aimantent pas : leur coude est fixé par les extrémités.
+  const snap = O.pitch > 0 ? (v => Math.round(v / O.pitch) * O.pitch) : (v => v);
   function buildCandidates(ax, ay, bx, by) {
     let c = 0;
     const put = (pts) => { candBuf.set(pts, c * 8); candLen[c] = pts.length / 2; c++; };
@@ -286,7 +354,7 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
     put([ax, ay, ax, by, bx, by]);
     for (let i = 0; i < O.splits.length; i++) {
       const t = O.splits[i];
-      const mx = ax + (bx - ax) * t, my = ay + (by - ay) * t;
+      const mx = snap(ax + (bx - ax) * t), my = snap(ay + (by - ay) * t);
       put([ax, ay, mx, ay, mx, by, bx, by]);
       put([ax, ay, ax, my, bx, my, bx, by]);
     }
