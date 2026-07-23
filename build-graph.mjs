@@ -579,6 +579,17 @@ for (const k of kept) {
 }
 // Les descriptions éditoriales surchargent APRÈS coup ce que le tableau a fourni.
 for (const [sid, desc] of Object.entries(DESCRIPTION_OVERRIDES)) presFor(sid).description = desc;
+// …et ABSORBENT le post-it qu'elles reprennent mot pour mot : ce texte vit
+// désormais dans l'en-tête de zone, le laisser AUSSI comme nœud le dirait deux
+// fois. On ne retire que le doublon EXACT, dans SA branche (une description qui
+// REFORMULE son post-it ne l'efface pas — il faudrait alors le désigner à part).
+let overrideAbsorbed = 0;
+for (const k of kept) {
+  const desc = DESCRIPTION_OVERRIDES[k.sectionId];
+  if (desc && (k.text || '').trim() === desc.trim()) { promoted.add(k.item.id); overrideAbsorbed++; }
+}
+if (!overrideAbsorbed && Object.keys(DESCRIPTION_OVERRIDES).length)
+  warn(`descriptions éditoriales : aucun post-it absorbé — un doublon peut réapparaître sur la carte si un texte a été recopié.`);
 // Retrait des post-its promus en en-tête (titres + « Cette carte mentale… » +
 // cartes nommées + questions de branche + question de recherche globale). Ils
 // vivent désormais dans l'en-tête de zone, plus sur la carte. Le tronc « Vue

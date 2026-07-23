@@ -41,6 +41,14 @@ export const ROUTE = {
   wNode: 3.0,       // ce que coûte un nœud traversé — le plus lourd : un trait
                     // qui passe sous un post-it laisse croire à un lien absent
   wLen: 0.004,      // ce que coûte la longueur, à départager seulement
+  space: 1.6,       // ÉCARTEMENT visé entre deux traits PARALLÈLES : en deçà, ils
+                    // se lisent comme un couloir confus (l'allure « circuit imprimé »
+                    // veut des pistes espacées, pas un peigne). Purement de lecture.
+  wSpace: 0.3,      // ce que coûte un tel frôlement. Sous wCross (1) : jamais au prix
+                    // d'un croisement — on préfère toujours écarter que décroiser.
+                    // 0,3 mesuré comme l'optimum : −9 % de frôlements SANS raser un
+                    // nœud de plus (au contraire : les traits qui s'écartent cessent
+                    // aussi de raser des post-its). Au-delà, on rase pour écarter.
   clear: 0.6,       // marge gardée autour d'un nœud
   cell: 8,          // maille de la grille d'accélération
   ripup: 8,         // reprises (rip-up and reroute) — plafond de TEMPS, pas
@@ -55,8 +63,8 @@ export const candidateCount = (opts = ROUTE) => 2 + opts.splits.length * 2;
  * Route un ensemble d'arêtes dans un plan.
  *
  * @param nodes  [{ id, x, y, r }]  — r = rayon du nœud (la marge est ajoutée ici)
- * @param edges  [{ source, target, rank }] — rank 0 passe avant rank 1 (les
- *               traits tracés à la main avant les cooccurrences calculées)
+ * @param edges  [{ source, target, rank }] — rank 0 passe avant rank 1
+ *               (les traits tracés à la main avant les cooccurrences calculées).
  * @param opts   surcharge de ROUTE (le vivant : `ripup` plus court pour le direct)
  * @param census `true` pour mesurer AUSSI le tracé direct — le build en a besoin
  *               pour la fiche, le navigateur non (c'est un second parcours complet)
@@ -205,11 +213,15 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
    *   limite — il ne cherche pas, il compte.
    */
   function costOf(P, np, srcIdx, dstIdx, owner, limit = Infinity) {
-    let cross = 0, over = 0, hits = 0, len = 0;
+    let cross = 0, over = 0, hits = 0, hug = 0, len = 0;
     const nodeTick = ++tick;
     for (let i = 0; i < np - 1; i++) {
       const ax = P[i * 2], ay = P[i * 2 + 1], bx = P[i * 2 + 2], by = P[i * 2 + 3];
       len += Math.hypot(bx - ax, by - ay);
+      // Orientation du segment candidat (les candidats sont tous orthogonaux
+      // AVANT biseau) : sert au FRÔLEMENT, qui n'a de sens qu'entre parallèles.
+      const ah = ay > by - 1e-6 && ay < by + 1e-6;   // horizontal
+      const av = ax > bx - 1e-6 && ax < bx + 1e-6;   // vertical
       // Une estampille PAR SEGMENT pour les segments posés (deux segments
       // distincts de la même polyligne ont le droit de croiser tous deux), une
       // SEULE pour les nœuds (un nœud est rasé par un trait, pas par un segment).
@@ -224,7 +236,28 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
           if (stamp[s] === segTick || sOwner[s] === owner) continue;
           stamp[s] = segTick;
           const m = meet(ax, ay, bx, by, sx1[s], sy1[s], sx2[s], sy2[s]);
-          if (m === 1) cross++; else if (m === 2) over++;
+          if (m === 1) { cross++; continue; }
+          if (m === 2) { over++; continue; }
+          // FRÔLEMENT : ni croisement ni recouvrement, mais deux traits
+          // PARALLÈLES qui se longent à moins de `space` — le peigne serré que
+          // l'œil ne démêle plus. On le compte pour que le routeur préfère, à
+          // égalité de croisements, la voie qui S'ÉCARTE. Jamais au prix d'un
+          // croisement (wSpace < wCross) : écarter est un confort, décroiser un dû.
+          if (ah && sy1[s] > sy2[s] - 1e-6 && sy1[s] < sy2[s] + 1e-6) {
+            const gap = ay > sy1[s] ? ay - sy1[s] : sy1[s] - ay;
+            if (gap > 1e-6 && gap < O.space) {
+              const lo = ax < bx ? ax : bx, hi = ax < bx ? bx : ax;
+              const slo = sx1[s] < sx2[s] ? sx1[s] : sx2[s], shi = sx1[s] < sx2[s] ? sx2[s] : sx1[s];
+              if ((hi < shi ? hi : shi) - (lo > slo ? lo : slo) > 0.5) hug++;
+            }
+          } else if (av && sx1[s] > sx2[s] - 1e-6 && sx1[s] < sx2[s] + 1e-6) {
+            const gap = ax > sx1[s] ? ax - sx1[s] : sx1[s] - ax;
+            if (gap > 1e-6 && gap < O.space) {
+              const lo = ay < by ? ay : by, hi = ay < by ? by : ay;
+              const slo = sy1[s] < sy2[s] ? sy1[s] : sy2[s], shi = sy1[s] < sy2[s] ? sy2[s] : sy1[s];
+              if ((hi < shi ? hi : shi) - (lo > slo ? lo : slo) > 0.5) hug++;
+            }
+          }
         }
         const narr = nodeCells[k];
         if (narr) for (let z = 0; z < narr.length; z++) {
@@ -236,10 +269,10 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
       }
       // Élagage, une fois par segment : assez tôt pour trancher, assez rare
       // pour ne rien coûter.
-      if (cross * O.wCross + over * O.wOverlap + hits * O.wNode + len * O.wLen >= limit) return Infinity;
+      if (cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen >= limit) return Infinity;
     }
     outCross = cross; outOver = over; outHits = hits;
-    return cross * O.wCross + over * O.wOverlap + hits * O.wNode + len * O.wLen;
+    return cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen;
   }
 
   // ── Les chemins possibles : deux L (un coude), deux Z par partage ─────────
@@ -260,18 +293,34 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
   }
 
   // ── Les arêtes à router, dans l'ordre de pose ─────────────────────────────
-  // Les traits tracés à la main d'abord (c'est le geste des auteur·rices, il a
-  // priorité sur une cooccurrence calculée), puis du plus court au plus long :
-  // un court a peu de latitude, un long saura contourner. Ordre totalement
-  // déterministe — l'identifiant départage les ex æquo.
+  // Les traits tracés à la main d'abord (rang 0 : c'est le geste des auteur·rices,
+  // il a priorité sur une cooccurrence calculée). ENSUITE, la plus CONTRAINTE
+  // d'abord : une arête qui traverse une zone dense a peu de latitude et doit
+  // choisir pendant que le plan est vide ; une arête au large saura toujours
+  // contourner ce qui est déjà posé (l'ancien ordre « du plus court au plus long »
+  // était un proxy grossier de cette même idée). `cong` compte les obstacles dans
+  // le couloir de l'arête ; longueur puis identifiant départagent. Déterministe.
   const jobs = [];
   for (let i = 0; i < edges.length; i++) {
     const e = edges[i];
     const a = indexOfId.get(e.source), b = indexOfId.get(e.target);
     if (a === undefined || b === undefined || a === b) continue;
-    jobs.push({ i, a, b, len: Math.hypot(nx[b] - nx[a], ny[b] - ny[a]), rank: e.rank || 0, s: e.source, t: e.target });
+    jobs.push({ i, a, b, len: Math.hypot(nx[b] - nx[a], ny[b] - ny[a]),
+                rank: e.rank || 0, cong: 0, s: e.source, t: e.target });
   }
-  jobs.sort((u, v) => u.rank - v.rank || u.len - v.len
+  // Congestion : nœuds (hors extrémités) dont le centre tombe dans la boîte de
+  // l'arête, élargie de la marge. Proxy simple et déterministe du « peu de place ».
+  for (const j of jobs) {
+    const x0 = Math.min(nx[j.a], nx[j.b]) - O.clear, x1 = Math.max(nx[j.a], nx[j.b]) + O.clear;
+    const y0 = Math.min(ny[j.a], ny[j.b]) - O.clear, y1 = Math.max(ny[j.a], ny[j.b]) + O.clear;
+    let cong = 0;
+    for (let n = 0; n < N; n++) {
+      if (n === j.a || n === j.b) continue;
+      if (nx[n] >= x0 && nx[n] <= x1 && ny[n] >= y0 && ny[n] <= y1) cong++;
+    }
+    j.cong = cong;
+  }
+  jobs.sort((u, v) => u.rank - v.rank || v.cong - u.cong || u.len - v.len
     || (u.s < v.s ? -1 : u.s > v.s ? 1 : 0)
     || (u.t < v.t ? -1 : u.t > v.t ? 1 : 0));
 
@@ -286,8 +335,6 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
     let best = -1, bs = Infinity;
     for (let c = 0; c < CAND; c++) {
       const sub = candBuf.subarray(c * 8, c * 8 + candLen[c] * 2);
-      // On passe le meilleur coût connu comme plafond : les candidats suivants
-      // n'ont qu'à prouver qu'ils font mieux, pas à dire de combien ils font pire.
       const sc = costOf(sub, candLen[c], j.a, j.b, ji, bs);
       if (sc < bs - 1e-9) { bs = sc; best = c; }
     }

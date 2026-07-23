@@ -1754,10 +1754,13 @@
         séparé : la carte reste maniable pendant ce temps, en tracé direct, et le
         circuit paraît dès qu'il est prêt.</p>
       <p>Il est <b>glouton</b> : les liens
-        sont posés du plus court au plus long, chacun choisissant parmi
+        sont posés du plus <b>contraint</b> au plus libre — celui qui traverse une
+        zone dense tranche pendant que le plan est vide, l'autre saura toujours
+        contourner —, chacun retenant parmi
         <b id="md-route-cands">…</b> chemins possibles celui qui coûte le moins
-        face à ce qui est déjà posé — un croisement, un recouvrement, un nœud
-        rasé et la longueur ayant chacun leur poids. Puis vient la <b>reprise</b>
+        face à ce qui est déjà posé : un croisement, un recouvrement, un nœud
+        rasé, le <b>frôlement</b> de deux traits parallèles trop serrés et la
+        longueur y pèsent chacun leur poids. Puis vient la <b>reprise</b>
         (<i>rip‑up and reroute</i>) : chaque lien est retiré à son tour et
         reposé face au tracé complet, celui qu'il n'avait pas pu voir la première
         fois. On itère tant que ça bouge — ici <b id="md-route-passes">…</b>.</p>
@@ -2766,7 +2769,9 @@ const state = {
   // impossible à plat) : elle survit à un changement de disposition.
   rotateWanted: true,
   selectedId: null,
-  searchMatches: null, // null = no active search
+  searchMatches: null, // null = no active search — RESTREINT à ce qui est sur la carte
+  searchOnMapCount: 0,  // résultats effectivement sur la carte (sous recentrage/focus)
+  searchTotalCount: 0,  // résultats au total (avant restriction au sous-corpus visible)
   // Une recherche VALIDÉE (Entrée) : le volet de droite lui est dédié, se met
   // à jour en direct (axe, filtres) et peut épingler ses étiquettes sur la
   // carte (searchPinned). Distinct de searchMatches, qui reste le résultat
@@ -3477,9 +3482,23 @@ function makeArrowRenderer(baseOpacity) {
       // flèche qui vise là où le trait n'arrive pas se voit immédiatement.
       // En tracé direct, ce sommet retombe sur le nœud de départ et l'on
       // retrouve la direction de la corde, sans cas particulier.
-      routePointAt(a.position, b.position, routeOf(e), toB ? ROUTE_PTS - 2 : 1, _q3);
+      const r_ = routeOf(e);
+      const back = (to.userData.baseScale || 1) + ARROW_GAP;
+      // Le DERNIER sous-segment (avant-dernier sommet → nœud) est l'approche : en
+      // circuit il est orthogonal, le biseau à 45° se trouve UN sommet plus tôt.
+      // On vise donc ce dernier sous-segment et on ne recule JAMAIS sur le biseau
+      // — c'était l'erreur d'avant, qui faisait pointer la flèche de travers.
+      routePointAt(a.position, b.position, r_, toB ? ROUTE_PTS - 2 : 1, _q3);
       _d.set(to.position.x - _q3.x, to.position.y - _q3.y, to.position.z - _q3.z);
-      const len = _d.length();
+      let len = _d.length();
+      // Approche dégénérée (le sommet retombe SUR le nœud, arêtes très courtes) :
+      // la direction n'existe pas. On se rabat sur la CORDE — l'orientation d'un
+      // tracé direct —, jamais sur le biseau qui pencherait la pointe à 45°.
+      if (len < 1e-2) {
+        const from = toB ? a : b;
+        _d.set(to.position.x - from.position.x, to.position.y - from.position.y, to.position.z - from.position.z);
+        len = _d.length();
+      }
       // Nœud éteint, ou segment replié sur lui-même (voir makeEdgeRenderer) :
       // la pointe se replie de la même façon, à l'échelle zéro.
       if (visibility <= 1e-4 || len < 1e-6) {
@@ -3491,7 +3510,6 @@ function makeArrowRenderer(baseOpacity) {
       _q.setFromUnitVectors(_up, _d);
       // La pointe se pose à la SURFACE du nœud visé, pas en son centre : sinon
       // elle disparaîtrait dans la sphère.
-      const back = (to.userData.baseScale || 1) + ARROW_GAP;
       _p.copy(to.position).addScaledVector(_d, -back);
       _scale.setScalar(visibility);
       _m.compose(_p, _q, _scale);
@@ -7290,23 +7308,35 @@ function updateSearchMatches() {
   const q = searchInput.value.trim();
   if (q.length < 2) {
     state.searchMatches = null;
+    state.searchOnMapCount = state.searchTotalCount = 0;
     searchEnterHint.classList.remove('show');
     return null;
   }
   const match = queryMatcher(q);
   // Chercher DANS la sélection courante, pas dans tout le corpus : un post-it
   // qu'une case a éteint n'a rien à faire parmi des résultats qu'on va cliquer.
-  const matches = match ? LEAVES.filter(n => nodeMatchesFilter(n) && match(n.__norm)) : [];
-  state.searchMatches = new Set(matches.map(n => n.id));
-  searchEnterHint.classList.toggle('show', matches.length > 0);
-  return matches;
+  const all = match ? LEAVES.filter(n => nodeMatchesFilter(n) && match(n.__norm)) : [];
+  // …et SOUS un recentrage (mot ou post-it), ne garder que ce qui est vraiment
+  // SUR LA CARTE : un résultat hors du sous-corpus ou hors profondeur ne doit ni
+  // s'allumer ni figurer dans la liste. Le compteur « k / N » dit combien des N
+  // trouvés sont visibles ici (voir egoVisible). Sans recentrage, k = N.
+  const onMap = all.filter(egoVisible);
+  state.searchMatches = new Set(onMap.map(n => n.id));
+  state.searchTotalCount = all.length;
+  state.searchOnMapCount = onMap.length;
+  searchEnterHint.classList.toggle('show', onMap.length > 0);
+  return onMap;
 }
 
 function renderSearchDropdown(matches) {
   searchResults.innerHTML = '';
   const meta = document.createElement('div');
   meta.className = 'search-meta';
-  meta.innerHTML = `<b>${matches.length}</b> résultat${matches.length > 1 ? 's' : ''}<span>mots = ET · a|b = OU · -mot = exclure · "…" = phrase</span>`;
+  const onMap = state.searchOnMapCount, total = state.searchTotalCount;
+  const countLabel = onMap === total
+    ? `<b>${onMap}</b> résultat${total > 1 ? 's' : ''}`
+    : `<b>${onMap}</b> / ${total} sur la carte`;
+  meta.innerHTML = `${countLabel}<span>mots = ET · a|b = OU · -mot = exclure · "…" = phrase</span>`;
   searchResults.appendChild(meta);
   matches.slice(0, 40).forEach(n => {
     const sec = SECTIONS.find(s => s.id === n.section) || { name: n.label, color: n.sectionColor };
@@ -7509,7 +7539,13 @@ function renderSearchPanel() {
   const listEl = document.getElementById('sp-list');
   listEl.innerHTML = '';
   const title = document.createElement('div'); title.className = 'detail-block-title';
-  title.textContent = `Post‑its (${matches.length})`;
+  // « k / N sur la carte » quand un recentrage restreint le corpus ; sinon le
+  // simple total. La liste ci-dessous ne contient QUE les k visibles (searchMatches
+  // est déjà restreint), donc les deux s'accordent toujours.
+  const total = state.searchTotalCount || matches.length;
+  title.textContent = matches.length === total
+    ? `Post‑its (${matches.length})`
+    : `Post‑its (${matches.length} / ${total} sur la carte)`;
   listEl.appendChild(title);
   matches.slice().sort((a, b) => (a.label || '').localeCompare(b.label || ''))
     .slice(0, SP_LIST_MAX).forEach(n => {
