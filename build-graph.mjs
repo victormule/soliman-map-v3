@@ -77,10 +77,17 @@ const OFF_BOARD_DIST = 3000;
  * couleur absente d'ici reste « non classée » : mieux vaut ne rien dire que
  * mal attribuer un point de vue.
  *
- * `light_yellow` N'EST PLUS un alias de « Média » : c'est la couleur PAR
- * DÉFAUT d'un sticky Miro — les douze qui la portent sont des cas pratiques
- * de restitution, pas du média. Une couleur que l'on obtient sans la choisir
- * ne peut pas désigner un point de vue.
+ * ⚠ DEUX jaunes proches, à ne pas confondre. (1) `#fff6b6` est un hex CHOISI,
+ * et c'est EXACTEMENT la couleur que la légende du tableau donne à « Média »
+ * (le sticky « Média » de la légende est #fff6b6) : les douze post-its
+ * hors-cadre qui la portent sont donc classés « Média », fidèlement à la
+ * légende. (2) `light_yellow` est le NOM de la couleur PAR DÉFAUT d'un sticky
+ * Miro (jamais recoloré), stocké littéralement « light_yellow » : il n'entre
+ * PAS dans regardByColor (qui n'a que des hex), reste « non classé », et ses
+ * douze post-its sont des cas de restitution. Coïncidence troublante : les
+ * deux jaunes valent chacun douze. Une couleur qu'on obtient sans la choisir
+ * (le défaut) ne peut pas désigner un point de vue ; une couleur choisie et
+ * déclarée en légende, si.
  */
 const REGARDS = [
   { key: 'musee_homme',  name: "Musée de l'Homme",                       color: '#ffdc4a', aliases: [] },
@@ -178,11 +185,13 @@ const QUOTED_SPAN = /[«“"]\s*([^«»“”"]{3,})\s*[»”"]/g;
  * ni une déclaration des auteur·rices ni un calcul sur le graphe : sa propre
  * nature, dite comme telle dans la légende du site.
  *
- * Les bornes ne sont pas régulières : elles suivent les vraies coupures de
- * l'archive (les plus grands écarts entre deux créations valent 932 h, 604 h,
- * 453 h, 283 h — des semaines de silence, pas un continuum qu'on tranche).
- * `until` est une borne SUPÉRIEURE EXCLUSIVE ; la dernière période prend tout
- * ce qui suit.
+ * Les bornes ne sont pas régulières : elles suivent les PHASES DE TRAVAIL du
+ * tableau — le canevas, l'atelier, les reprises, l'enquête (voir `hint`) —, et
+ * non un calendrier régulier. À ne pas confondre avec les grands SILENCES de
+ * l'archive (census.silencesHours) : ceux-là montrent que le temps n'est pas un
+ * continuum, mais ils NE définissent PAS les bornes — les plus longs tombent au
+ * milieu des « reprises », pas à ses lisières. `until` est une borne SUPÉRIEURE
+ * EXCLUSIVE ; la dernière période prend tout ce qui suit.
  *
  * « PÉRIODE », et surtout pas « session » : une période n'est PAS une séance
  * de travail. À une coupure de 48 h le tableau compte huit séances — les 1re
@@ -531,6 +540,55 @@ for (const item of raw.items) {
 report.kept = kept.length;
 if (legendDropped !== 13) warn(`légende du tableau : ${legendDropped} items écartés au lieu des 13 attendus — vérifier LEGEND_BOX.`);
 
+// ── Les PRÉSENTATIONS de branche. Chaque bloc porte de l'appareil qui le
+// PRÉSENTE, pas du corpus : un titre, un paragraphe « Cette carte mentale… »,
+// parfois une carte de présentation composée à la main. On les SORT de la carte
+// et on les remonte en en-tête du panneau de zone (voir renderGroupPanel). La
+// question de recherche, elle, RESTE un nœud interrogeable : on n'en garde
+// qu'une COPIE pour l'en-tête. Le tronc (« Vue d'ensemble ») garde ses titres de
+// sous-thèmes — ce sont les étiquettes de ses grappes, pas des présentations.
+const presentations = {};
+const presFor = id => presentations[id] || (presentations[id] = { category: sectionById.get(id)?.name || '' });
+// Cartes de présentation composées à la main, donc classées « contenu » : la
+// règle typographique ne les attrape pas, on les DÉSIGNE (texte exact, tel que
+// textOf le normalise). Une carte interrogative y sert de question, sinon de
+// titre — c'est le cas de la zone « Questions déontologiques ».
+const PRESENTATION_CONTENT = new Set([
+  'Questions déontologiques liées aux restes humains en contexte muséal',
+  'En quoi le dispositif muséal actuel peut-il perpétuer, ou au contraire atténuer, les strates de violence associées à un corps muséalisé, comme celui de Soliman al-Halabi ?',
+]);
+// Descriptions ÉDITORIALES qui surchargent la carte de présentation dérivée du
+// tableau : le séminaire a parfois formulé pour une branche un cadrage plus
+// complet que le post-it d'origine. Assumé et en clair ici. Une description vit
+// en EN-TÊTE de zone (renderGroupPanel), jamais sur la carte — elle n'ajoute
+// donc aucun nœud.
+const DESCRIPTION_OVERRIDES = {
+  b_cas: "Un travail de comparaisons sur le traitement des restes humains dans des collections publiques présentes dans des institutions françaises mais également dans divers pays. Cela permettra d’observer la place que peuvent prendre les restes humains à travers des exemples de conservation, de recherche ainsi qu’au travers de cas de restitutions, afin de cerner au mieux le traitement qu’un corps peut exiger ou subir. Avec ces comparatifs, des liens avec le corps patrimonialisé de Soliman Al-Halabi pourront être établis liant les différents points réfléchis lors du séminaire, notamment avec la question de dignité.",
+};
+const promoted = new Set();
+for (const k of kept) {
+  if (k.sectionId === 's_frame') continue;
+  const txt = (k.text || '').trim();
+  if (k.nature === 'titre') { presFor(k.sectionId).title = txt; promoted.add(k.item.id); }
+  else if (k.nature === 'meta') { presFor(k.sectionId).description = txt; promoted.add(k.item.id); }
+  else if (k.nature === 'question') { presFor(k.sectionId).question = txt; promoted.add(k.item.id); } // hors tronc (boucle) : passe en en-tête de zone ET quitte la carte
+  else if (PRESENTATION_CONTENT.has(txt)) {
+    if (/\?\s*$/.test(txt)) presFor(k.sectionId).question = txt; else presFor(k.sectionId).title = txt;
+    promoted.add(k.item.id);
+  }
+}
+// Les descriptions éditoriales surchargent APRÈS coup ce que le tableau a fourni.
+for (const [sid, desc] of Object.entries(DESCRIPTION_OVERRIDES)) presFor(sid).description = desc;
+// Retrait des post-its promus en en-tête (titres + « Cette carte mentale… » +
+// cartes nommées + questions de branche + question de recherche globale). Ils
+// vivent désormais dans l'en-tête de zone, plus sur la carte. Le tronc « Vue
+// d'ensemble » n'entre jamais dans la boucle ci-dessus (continue sur s_frame) :
+// ses éventuels énoncés interrogatifs, eux, restent des nœuds sur la carte.
+for (let i = kept.length - 1; i >= 0; i--) if (promoted.has(kept[i].item.id)) kept.splice(i, 1);
+report.kept = kept.length;
+report.presentationsPromoted = promoted.size;
+report.presentationsZones = Object.keys(presentations).length;
+
 // Les heures complètes ne quittent jamais le build. Elles servent seulement à
 // produire plus bas un ordre normalisé et stable, puis disparaissent.
 const createdMsByNode = new Map(kept.map(k => [k.item.id, Date.parse(k.item.createdAt)]));
@@ -599,13 +657,14 @@ const createdMsByEdge = new WeakMap();
  *   2  pointe aux deux bouts : réciproque
  *
  * ⚠ Ce n'est PAS un graphe orienté qu'on rétablirait : la moitié des traits
- * (252 sur 474) ne porte aucune pointe, et c'est une donnée, pas un oubli.
- * Les quatre états coexistent et se dessinent tels quels. Ce que la flèche
- * SIGNIFIAIT pour les auteur·rices — dérivation, réponse, hypothèse — reste
- * inconnu : on restitue le geste, pas son sens (fiche méthode § 4).
+ * ne porte aucune pointe (le décompte des quatre états vit dans census.dirs),
+ * et c'est une donnée, pas un oubli. Les quatre états coexistent et se
+ * dessinent tels quels. Ce que la flèche SIGNIFIAIT pour les auteur·rices —
+ * dérivation, réponse, hypothèse — reste inconnu : on restitue le geste, pas
+ * son sens (fiche méthode § 4).
  *
- * `dashed` — le pointillé du tableau (36 traits). Même règle : conservé sans
- * qu'on prétende savoir ce qu'il voulait dire.
+ * `dashed` — le pointillé du tableau (census.dottedConnectors). Même règle :
+ * conservé sans qu'on prétende savoir ce qu'il voulait dire.
  */
 const addEdge = (a, b, type, dir = 0, dashed = false, createdAt = null) => {
   if (a === b) return false;
@@ -633,10 +692,12 @@ function dirOf(style) {
 }
 
 // 6a. Les connecteurs : les traits VRAIMENT tracés à la main sur le tableau.
-//     Leur DIRECTION (222 portent une pointe de flèche) et leur STYLE (36 en
-//     pointillé) ne sont PAS conservés : le graphe est non orienté et uniforme.
-//     C'est une perte assumée et documentée (fiche méthode § 4) — la rétablir
-//     serait un choix de représentation, pas une correction.
+//     Leur DIRECTION (les pointes de flèche) et leur STYLE (le pointillé) sont
+//     CONSERVÉS tels quels — `dir` et `dashed` posés par addEdge, dessinés par
+//     la page (fiche méthode § 4) — sans qu'on prétende en connaître le SENS.
+//     Le graphe n'est pas pour autant « orienté » : la moitié des traits ne
+//     porte aucune pointe (census.dirs), les quatre états coexistent, et rien
+//     n'est rétabli ni normalisé.
 let danglingConnectors = 0;
 for (const c of raw.connectors) {
   const a = c.startItem?.id, b = c.endItem?.id;
@@ -1024,7 +1085,7 @@ const silences = (() => {
  * sert pour justifier l'espacement adaptatif des couronnes du recentrage
  * (« min(26, 300 / profondeur) ») : le chiffre doit donc être celui du graphe,
  * pas un souvenir. Excentricité maximale sur la plus grande composante ;
- * ~600 BFS sur 594 arêtes, le coût est invisible dans un build.
+ * un BFS par nœud sur l'ensemble des arêtes, le coût est invisible dans un build.
  */
 const graphSpan = (() => {
   const adj = new Map(kept.map(k => [k.item.id, []]));
@@ -1128,6 +1189,9 @@ const graph = {
   nodes,
   edges,
   sections: SECTIONS.map(({ id, name, color }) => ({ id, name, color })),
+  // Les présentations de branche, remontées en en-tête de panneau de zone
+  // (build § « PRÉSENTATIONS de branche ») : { sectionId → {category,title,description,question} }.
+  presentations,
   regards: REGARDS.map(({ key, name, color }) => ({ key, name, color })),
   sousThemes: SOUS_THEMES.map(({ key, name, color }) => ({ key, name, color })),
   periodes: PERIODES.map(({ key, name, color, hint }) => ({ key, name, color, hint })),

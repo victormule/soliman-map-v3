@@ -7,9 +7,9 @@ Cartographie interactive d'une carte mentale sur les **restes humains en context
 
 Le site rejoue une carte mentale (exportée de Miro) sous deux dispositions — une
 **cartographie** à plat et une **constellation** en volume — et laisse la parcourir
-selon plusieurs axes de lecture (sections, regards, sous‑thèmes, temps, formes),
-avec recherche plein texte, recentrage autour d'un nœud, tracé de chemins et
-analyse du champ lexical du corpus.
+selon plusieurs axes de lecture (sections, regards, sous‑thèmes, temps, formes,
+place dans le raisonnement), avec recherche plein texte, recentrage autour d'un
+nœud, tracé de chemins et analyse du champ lexical du corpus.
 
 ---
 
@@ -80,13 +80,19 @@ Poussé sur GitHub (`victormule/soliman-map-v3`) et desservi par **Netlify**
 (publication de la racine, sans étape de build côté serveur — `graph.json` est
 déjà versionné). `netlify.toml` fixe la compression (automatique), le cache et
 les en‑têtes de sécurité, dont une **Content‑Security‑Policy** calibrée sur ce
-que la page charge réellement.
+que la page charge réellement. Elle est pour l'instant déployée en
+**Report‑Only** (le temps du rodage) : signalée dans la console du navigateur,
+elle ne bloque encore rien. Le passage en mode bloquant se fait en retirant le
+suffixe `-Report-Only` dans `netlify.toml`, une fois vérifié qu'un parcours
+normal ne déclenche aucune violation.
 
 ### Image de partage social
 
 Les balises Open Graph du `<head>` pointent vers `og-image.jpg` à la racine
-(1200 × 630). **Ce fichier reste à déposer** : une capture de la constellation
-fait une vignette idéale pour les liens partagés (réseaux, messageries, articles).
+(1351 × 675, format paysage ≈ 2:1) — une capture de la constellation, **déposée** :
+elle sert de vignette aux liens partagés (réseaux, messageries, articles). Les
+dimensions déclarées dans le `<head>` (`og:image:width/height`) suivent le fichier
+réel ; si vous le remplacez, mettez-les à jour en même temps.
 
 ---
 

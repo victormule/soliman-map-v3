@@ -22,8 +22,8 @@
 <meta property="og:description" content="Cartographie interactive d'une carte mentale sur les restes humains en contexte muséal.">
 <meta property="og:url" content="https://soliman-map.netlify.app/">
 <meta property="og:image" content="https://soliman-map.netlify.app/og-image.jpg">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image:width" content="1351">
+<meta property="og:image:height" content="675">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Le Corps de Soliman al‑Halabi — cartographie interactive">
@@ -523,6 +523,16 @@
   #gp-title .dot{ flex-shrink:0; box-shadow:none; }
   #gp-sub{ margin-top:6px; font-size:10.5px; color:var(--ink-faint); font-family:var(--mono); }
   #gp-body{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:14px 18px 22px; }
+  /* L'en-tête de présentation d'une zone « Quoi ? » : la catégorie en surtitre,
+     le titre de présentation en corps sérif, la question de recherche mise en
+     évidence, puis le paragraphe « Cette carte mentale… ». Sépare visiblement la
+     présentation de la liste des post-its qui la suit. */
+  #gp-presentation{ margin:0 0 14px; padding:0 0 14px; border-bottom:1px solid var(--border-strong); }
+  #gp-presentation[hidden]{ display:none; }
+  .gp-pres-title{ font:600 15.5px/1.4 var(--serif); color:var(--ink); margin-bottom:8px; }
+  .gp-pres-q{ font-size:12px; line-height:1.5; color:var(--ink); font-style:italic;
+              border-left:2px solid var(--border-strong); padding-left:9px; margin-bottom:8px; }
+  .gp-pres-desc{ font-size:11.5px; line-height:1.6; color:var(--ink-dim); }
   /* Une ligne dépliable : le clic sur la ligne OUVRE le texte sur place, il
      n'ouvre pas la fiche — c'est ce qui permet de parcourir un groupe sans le
      quitter. Les deux gestes qui font sortir sont dans le dépli, nommés. */
@@ -635,6 +645,30 @@
   #pp-arm[hidden]{ display:none; }
   #pp-arm b{ color: var(--ink); font-weight:500; }
   #pp-arm i{ font-style:normal; color: var(--ink-faint); }
+  /* La recherche d'arrivée DANS l'invite : suggestions live, sans touche Entrée.
+   * Même esprit que la recherche du bandeau, mais rangée dans le menu chemin. */
+  #pp-arm-msg{ margin-bottom:7px; }
+  #pp-search{ width:100%; background: rgba(10,9,8,0.55); border:1px solid var(--border);
+              color: var(--ink); font: 11.5px var(--sans); padding:6px 9px; border-radius:7px; outline:none; }
+  #pp-search::placeholder{ color: var(--ink-faint); }
+  #pp-search:focus{ border-color: var(--border-strong); }
+  #pp-search-results{ margin-top:6px; max-height:210px; overflow-y:auto; display:none; flex-direction:column; gap:1px;
+                      scrollbar-width: thin; scrollbar-color: rgba(201,162,75,0.3) transparent; }
+  #pp-search-results.show{ display:flex; }
+  #pp-search-results::-webkit-scrollbar{ width:6px; }
+  #pp-search-results::-webkit-scrollbar-thumb{ background: rgba(201,162,75,0.3); border-radius:6px; }
+  .pp-sr-item{ display:flex; align-items:baseline; gap:7px; padding:5px 7px; border-radius:6px;
+               cursor:pointer; color: var(--ink-dim); }
+  .pp-sr-item:hover{ background: rgba(201,162,75,0.09); color: var(--ink); }
+  .pp-sr-sec{ font-family: var(--mono); font-size:8.5px; letter-spacing:.04em; text-transform:uppercase;
+              flex-shrink:0; max-width:68px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-sr-lbl{ flex:1; min-width:0; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-sr-hops{ font-family: var(--mono); font-size:8.5px; color: var(--ink-faint); flex-shrink:0; }
+  /* Suggestion non traçable (isolée, ou autre partie du réseau) : grisée et
+     inerte — on ne trace pas de « ∅ ». Pas de surbrillance ni de main au survol. */
+  .pp-sr-item.unreach{ opacity:.5; cursor:not-allowed; }
+  .pp-sr-item.unreach:hover{ background:transparent; color: var(--ink-dim); }
+  .pp-sr-item.unreach .pp-sr-hops{ color:#f28e4b; }
   #pp-hint{ font-size:10px; line-height:1.5; color: var(--ink-faint); }
   #pp-hint[hidden]{ display:none; }
   /* Un ARBRE = un départ et ses arrivées. Le groupe se lit d'un bloc : en-tête
@@ -674,8 +708,17 @@
   .pp-branch.out .pp-hops::after{ content:' · hors champ'; color: var(--ink-faint); }
   .pp-target{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pp-hops{ font-family: var(--mono); font-size:9px; color: var(--ink-faint); flex-shrink:0; }
-  .pp-branch.miss .pp-target{ color: var(--ink-faint); font-style:italic; }
-  .pp-branch.miss .pp-swatch{ background: transparent; border:1px dashed var(--ink-faint); }
+  /* La branche dépasse la profondeur affichée du recentrage : elle reste entière
+   * mais s'estompe au-delà sur la carte. Le « ⋯ » le dit dans le panneau. */
+  .pp-beyond{ font-family: var(--mono); font-size:11px; color: var(--ink-faint); flex-shrink:0; margin-right:-2px; cursor:help; }
+  .pp-branch.beyond .pp-hops{ opacity:.8; }
+  /* Sélecteur de VARIANTES : quand plusieurs tracés ont la même longueur, on les
+     parcourt (‹ n/N ›). La couleur de la branche remonte au survol des flèches. */
+  .pp-variant{ display:inline-flex; align-items:center; gap:2px; flex-shrink:0; font-family: var(--mono);
+               font-size:9px; color: var(--ink-faint); }
+  .pp-var-prev, .pp-var-next{ cursor:pointer; padding:0 2px; border-radius:3px; user-select:none; font-size:12px; line-height:1; }
+  .pp-var-prev:hover, .pp-var-next:hover{ color: var(--branch, var(--ink)); background: rgba(255,255,255,0.06); }
+  .pp-var-n{ min-width:22px; text-align:center; }
   .pp-steps{ display:none; padding:2px 0 4px 21px; }
   .pp-branch.open .pp-steps{ display:block; }
   .pp-step{ font-size:10.5px; color: var(--ink-dim); padding:3px 4px; border-radius:5px; cursor:pointer;
@@ -683,6 +726,24 @@
   .pp-step:hover{ background: rgba(255,255,255,0.04); color: var(--ink); }
   .pp-step:first-child{ color: var(--gold); }
   .pp-step:last-child{ color: var(--ink); }
+  /* Un POINT DE PASSAGE imposé (« passant par… ») : distinct des relais calculés,
+     et retirable par son ✕. Un liseré à la couleur de la branche le rattache. */
+  .pp-step.via{ display:flex; align-items:center; gap:6px; border-left:2px solid var(--branch, var(--ink-faint));
+                padding-left:6px; color: var(--ink); }
+  .pp-step.via .pp-step-lbl{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-via-del{ flex-shrink:0; cursor:pointer; color: var(--ink-faint); font-size:9px; opacity:.6; padding:0 1px; }
+  .pp-via-del:hover{ color: var(--ink); opacity:1; }
+  .pp-via-add{ font-family: var(--mono); font-size:8.5px; letter-spacing:.03em; color: var(--ink-dim);
+               margin-top:3px; padding:2px 4px; border-radius:5px; cursor:pointer; display:inline-block; }
+  .pp-via-add:hover{ color: var(--gold); background: rgba(255,255,255,0.04); }
+  /* La clé de lecture du TRAIT (la couleur, elle, dit la branche) : plein pour un
+     connecteur tracé, tirets pour un fil « même texte » — comme sur la carte. */
+  .pp-legend{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:6px; padding-top:7px;
+              border-top:1px solid var(--border); font-family: var(--mono); font-size:8.5px;
+              letter-spacing:.03em; color: var(--ink-faint); cursor:help; }
+  .pp-lg-solid, .pp-lg-dash{ width:16px; flex-shrink:0; }
+  .pp-lg-solid{ border-top:2px solid var(--ink-dim); }
+  .pp-lg-dash{ border-top:2px dashed var(--ink-dim); margin-left:6px; }
   /* Le signal d'armement : liseré doré qui respire + curseur en croix — on
      SAIT que le prochain clic construit un chemin, pas une navigation. */
   body.path-arming #canvas-wrap canvas{ cursor: crosshair; }
@@ -941,6 +1002,14 @@
   #sp-resonance-btn:hover{ background:rgba(201,162,75,.14); }
   #sp-resonance-btn[aria-disabled="true"]{ opacity:.38; cursor:default; }
   #sp-resonance-note{ font-size:10.5px; line-height:1.45; color:var(--ink-faint); }
+  #sp-resonance-note .sp-res-lead{ margin:0; color:var(--ink); font-size:11.5px; line-height:1.5; }
+  #sp-resonance-note .sp-res-hint{ color:var(--ink-faint); }
+  #sp-resonance-note .sp-res-more{ margin-top:7px; }
+  #sp-resonance-note .sp-res-more summary{ cursor:pointer; color:var(--gold); font-size:10px; list-style:none; }
+  #sp-resonance-note .sp-res-more summary::-webkit-details-marker{ display:none; }
+  #sp-resonance-note .sp-res-more summary::before{ content:'▸ '; }
+  #sp-resonance-note .sp-res-more[open] summary::before{ content:'▾ '; }
+  #sp-resonance-note .sp-res-more p{ margin:6px 0 0; }
   #sp-resonance-summary{ margin-top:9px; padding:9px 0 2px; border-top:1px solid rgba(255,255,255,.07); }
   .sp-res-family{ display:grid; grid-template-columns:1fr auto; gap:3px 10px; padding:6px 0;
     border-bottom:1px solid rgba(255,255,255,.045); }
@@ -1199,6 +1268,11 @@
       <div id="gp-sub"></div>
     </div>
     <div id="gp-body">
+      <!-- L'en-tête de présentation d'une zone « Quoi ? » : les post-its qui
+           PRÉSENTAIENT le bloc sur le tableau (titre, « Cette carte mentale… »)
+           vivent ici, plus la question de recherche. Vide (masqué) pour les
+           autres axes ou une zone sans présentation. -->
+      <div id="gp-presentation" hidden></div>
       <div id="gp-list"></div>
     </div>
   </div>
@@ -1217,7 +1291,15 @@
     <span id="pp-clear" title="tout effacer">✕</span>
   </div>
   <div id="pp-body">
-    <div id="pp-arm" hidden></div>
+    <!-- L'invite d'armement : le message, PUIS une recherche dédiée pour choisir
+         l'arrivée par le texte plutôt qu'à la souris. La structure est fixe (le
+         message seul se réécrit) pour que l'input garde son focus et sa saisie. -->
+    <div id="pp-arm" hidden>
+      <div id="pp-arm-msg"></div>
+      <input id="pp-search" type="text" autocomplete="off" spellcheck="false"
+             placeholder="…ou cherchez le post-it d'arrivée" aria-label="Chercher un post-it d'arrivée">
+      <div id="pp-search-results"></div>
+    </div>
     <div id="pp-list"></div>
     <div id="pp-hint">Ouvrez un nœud et « ⇢ Tracer un chemin » pour ouvrir une première route. Une route part d’un nœud et porte un ou plusieurs chemins ; « ＋ arrivée » y ajoute un chemin.</div>
   </div>
@@ -1684,6 +1766,11 @@
         pas : c'est le résultat d'une heuristique, mesuré. Voici ce qu'il gagne,
         compté de la même façon sur les deux tracés :</p>
       <div class="md-params" id="md-circuit"></div>
+      <p>Le gain se lit surtout sur les <b>nœuds évités</b> : le circuit contourne
+        les pastilles qu'une corde traverserait de part en part. Sur les seuls
+        <b>croisements</b> il est plus modeste — les redresser tous est le problème
+        NP‑difficile évoqué plus haut —, mais un trait qui passe derrière moins de
+        nœuds se suit déjà mieux à l'œil. On mesure les deux, sans les confondre.</p>
       <p>Les chiffres ci-dessus sont ceux de la cartographie. Un recentrage
         route un sous-graphe plus petit et s'accorde moins de reprises — il n'y
         a donc pas de raison d'y attendre le même gain, et nous ne le mesurons
@@ -1793,7 +1880,7 @@
         le centre de la scène : la caméra se tient à ~230 unités du centre d'un
         nuage large de ~120, si bien qu'une densité exponentielle calée sur le
         rayon déclare le nuage entier « au loin » — le réglage d'origine effaçait
-        <b>91 % de la cartographie</b> à la distance d'arrivée. Le brouillard
+        <b>l'essentiel de la cartographie</b> à la distance d'arrivée. Le brouillard
         linéaire a ce que l'exponentiel n'a pas : un <b>début</b>. Il s'accroche au
         bord proche du nuage (voile nul) et porte jusqu'au bord lointain. En
         cartographie, la scène est un plan : il n'y a aucune profondeur à dire, et
@@ -2060,8 +2147,9 @@ const KEYBOARD_CLICK_SELECTOR = [
   '#legend-reset', '#pin-clear', '#lg-toggle', '#lg-mini', '#ego-option-name',
   '#ego-option-exit', '#detail-close', '#path-from-btn', '#ego-from-btn',
   '.conn-item', '.gp-row', '.gp-act', '#gp-close', '#sp-close', '.search-item',
-  '.sp-cooc-row', '#pp-fold', '#pp-clear', '.pp-branch:not(.miss) .pp-brow',
-  '.pp-step', '.pp-oname', '.pp-tdel', '.pp-bdel', '.pp-tadd', '#ego-close', '.ego-btn',
+  '.sp-cooc-row', '#pp-fold', '#pp-clear', '.pp-branch .pp-brow',
+  '.pp-step:not(.via)', '.pp-step-lbl', '.pp-via-del', '.pp-via-add', '.pp-var-prev', '.pp-var-next',
+  '.pp-oname', '.pp-tdel', '.pp-bdel', '.pp-tadd', '.pp-sr-item:not(.unreach)', '#ego-close', '.ego-btn',
   '.md-tab', '.md-jump', '#modal-close', '#modal-x', '#stats-close', '.st-row',
   '.xtab td[title]', '.lex-chip', '.kwic-search-link', '.kwic-row', '#sp-resonance-btn',
 ].join(',');
@@ -2177,6 +2265,10 @@ EDGES.forEach((e, i) => {
   e.__orbitRouteEgo = null;
 });
 const SECTIONS = DATA.sections;
+// Les présentations de branche, remontées en en-tête du panneau de zone « Quoi ? »
+// (voir build-graph.mjs) : { sectionId → {category,title,description,question} }.
+// Un graph.json antérieur n'en a pas — l'en-tête reste alors simplement absent.
+const PRESENTATIONS = DATA.presentations || {};
 const REGARDS = DATA.regards;
 // Les 11 sous-thèmes de la « Vue d'ensemble » : DANS le cadre, la couleur d'un
 // post-it désigne une grappe thématique du canevas de départ, PAS un regard (voir
@@ -2202,16 +2294,16 @@ const FRAME_COLOR = (SECTIONS.find(s => s.id === 's_frame') || {}).color || '#d9
 
 /**
  * L'ARBORESCENCE — l'étendue qu'on regarde. Le tableau est deux corpus, et la
- * mesure l'établit sans appel : sur 594 arêtes, 110 sont internes au tronc,
- * 355 internes aux branches, et les 129 qui traversent sont TOUTES des fils
- * « même texte » — c'est-à-dire calculés par nous. Aucun trait tracé à la main
- * ne franchit la frontière : personne n'a jamais relié un post-it du canevas à
- * un post-it de bloc.
+ * mesure l'établit sans appel (le décompte vit dans census.arbre) : des liens
+ * internes au tronc, des liens internes aux branches, et ceux qui TRAVERSENT
+ * la frontière sont TOUS des fils « même texte » — calculés par nous, jamais
+ * tracés à la main (crossConnector = 0). Personne n'a jamais relié à la main un
+ * post-it du canevas à un post-it de bloc.
  *
- * Le tronc précède les branches (ses cent premiers post-its ont cinq jours
- * d'avance, et sur 129 énoncés présents des deux côtés 125 sont plus anciens
- * dans le tronc) : la métaphore de l'arbre n'est pas décorative, elle est
- * mesurée.
+ * Le tronc précède les branches (ses premiers post-its ont plusieurs jours
+ * d'avance, et parmi les énoncés présents des deux côtés la grande majorité est
+ * plus ancienne dans le tronc) : la métaphore de l'arbre n'est pas décorative,
+ * elle est mesurée.
  *
  * ⚠ « Arbre » et « branche » sont RÉSERVÉS à cette lecture-ci. Le panneau des
  * chemins, qui s'affiche juste dessous, tient le vocabulaire de la ROUTE : une
@@ -2690,8 +2782,15 @@ const state = {
   legendPinned: false,
   // Les chemins forment une COLLECTION d'arbres. Chaque arbre = UNE origine et
   // ses arrivées (« ＋ arrivée » repart du même point) ; un NOUVEAU chemin
-  // (autre départ) est un autre arbre. Un arbre :
-  //   { originId, targetIds, segments:[[ids]], segColors:[], nodeSet, endSet, misses }
+  // (autre départ) est un autre arbre. Toutes les arrivées sont ATTEIGNABLES
+  // (une sans chemin est refusée en amont — plus de « ∅ »). Un arbre :
+  //   { originId, segStops:[[via…, target]], segVariant:[n], segColors:[hex],
+  //     segColorN:[indice], segments:[[ids]], segVariantCount:[n], nodeSet, endSet }
+  // Une branche est DÉFINIE par ses étapes (segStops : points de passage puis
+  // arrivée) et sa variante (segVariant) ; `segments` en est le tracé calculé,
+  // segVariantCount le nombre de tracés de même longueur possibles. Tous ces
+  // tableaux sont alignés (même ordre, même longueur). segColorN mémorise la
+  // couleur pour le rejeu d'un lien partagé.
   paths: [],
   pathNodes: null, // Set combiné de tous les nœuds tracés (surbrillance)
   pathEnds: null,  // Set combiné des origines + arrivées (extrémités)
@@ -2723,9 +2822,19 @@ let activeBranch = null;
 // Même zone morte que `activeBranch` : `updateVisuals()` lit `pathOrigin` dès le
 // montage (pendant qu'on trace, la carte garde son allumage normal — voir `arming`).
 // Le reste de leur machinerie vit dans la section « Chemin le plus court ».
-let pathOrigin = null;    // nœud de DÉPART armé (le prochain clic = arrivée)
+let pathOrigin = null;    // nœud de DÉPART armé (le prochain clic = arrivée OU étape)
 let pathArmTree = null;   // arbre auquel ajouter l'arrivée ; null = NOUVEAU chemin
+// Quand on arme un POINT DE PASSAGE (« passant par… ») plutôt qu'une arrivée :
+// { ti, si } désigne la branche à faire passer par le nœud choisi. null sinon.
+let pathArmVia = null;
 let pathColorN = 0;       // compteur GLOBAL de couleurs de branche (stable)
+// Le chemin PRÉVISUALISÉ pendant qu'on trace : la suite d'ids du départ armé vers
+// le nœud actuellement survolé (ou proposé par la recherche du menu), ou null. Il
+// se dessine en pointillé tentatif — montrer, avant le clic, ce qu'on tracerait.
+let pathPreview = null;
+// Vrai quand le curseur est sur la liste de suggestions du menu chemin : c'est ELLE
+// qui pilote alors la prévisualisation, le survol de la carte se met en retrait.
+let overPathSearch = false;
 
 /**
  * Le post-it DÉPLIÉ dans le volet d'un groupe, et le prédicat « ce volet est-il
@@ -3306,11 +3415,11 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false) {
   return { lines, update, mat };
 }
 /**
- * Les POINTES DE FLÈCHE du tableau (220 sur 451 connecteurs).
+ * Les POINTES DE FLÈCHE du tableau (census.arrowConnectors sur les connecteurs).
  *
- * ⚠ Le graphe n'est PAS devenu orienté : 231 traits n'ont aucune pointe, et
- * c'est une donnée — les auteur·rices ont tiré ces traits sans y mettre de sens
- * de lecture. Quatre états coexistent (aucune · vers l'avant · vers l'arrière ·
+ * ⚠ Le graphe n'est PAS devenu orienté : la moitié des traits n'ont aucune
+ * pointe (census.dirs.none), et c'est une donnée — les auteur·rices ont tiré
+ * ces traits sans y mettre de sens de lecture. Quatre états coexistent (aucune · vers l'avant · vers l'arrière ·
  * réciproque), ils se dessinent tels quels, et la fiche (§ 4) dit qu'on
  * restitue le GESTE sans prétendre en connaître le sens.
  *
@@ -4335,6 +4444,16 @@ function updateVisuals(refreshEdges = true) {
       else if (a?.relationClass === 'contextual') { opacity = 0.54 + 0.30 * (a.relevance || a.score || 0); scale *= 1.01 + 0.10 * (a.relevance || a.score || 0); }
       else opacity = 0;
       if (!passesFilter) opacity *= 0.32;
+      // Une recherche PENDANT la résonance : les nœuds trouvés se DISTINGUENT au
+      // sein du recentrage — comme la recherche se distingue dans un recentrage
+      // post-it — sans quitter la résonance courante. Les trouvés remontent en
+      // pleine lumière et grossissent, les autres reculent (mais restent, la
+      // résonance demeure lisible dessous). Le sous-corpus tient : un « soliman »
+      // hors de la résonance « corps » a déjà été éteint plus haut.
+      if (state.searchMatches) {
+        if (state.searchMatches.has(n.id)) { opacity = Math.max(opacity, 0.94); scale *= 1.18; }
+        else opacity *= 0.16;
+      }
     } else if (state.searchMatches) {
       opacity = state.searchMatches.has(n.id) ? g.userData.baseOpacity : 0.04;
     } else {
@@ -4712,6 +4831,29 @@ function renderGroupPanel() {
     `${nodes.length} post‑it${nodes.length > 1 ? 's' : ''} · ${lies} lien${lies > 1 ? 's' : ''} · triés par degré`
     + (meta.hint ? ` · ${meta.hint}` : '');
 
+  // En-tête de PRÉSENTATION (zones « Quoi ? » seulement) : ce que le bloc
+  // affichait comme présentation sur le tableau — sorti de la carte, remonté
+  // ici. La catégorie est déjà portée par #gp-title au-dessus ; on n'y remet
+  // donc que le titre de présentation, la question de recherche, puis le
+  // paragraphe. textContent partout : ces textes viennent du corpus, pas de balisage.
+  const pres = g.axis === 'section' ? PRESENTATIONS[g.key] : null;
+  const presEl = document.getElementById('gp-presentation');
+  if (pres && (pres.title || pres.description || pres.question)) {
+    presEl.hidden = false;
+    presEl.innerHTML = `<div class="gp-pres-title"></div>`
+      + `<div class="gp-pres-q"></div><div class="gp-pres-desc"></div>`;
+    const set = (sel, txt) => {
+      const el = presEl.querySelector(sel);
+      if (txt) el.textContent = txt; else el.remove();
+    };
+    set('.gp-pres-title', pres.title);
+    set('.gp-pres-q', pres.question);
+    set('.gp-pres-desc', pres.description);
+  } else {
+    presEl.hidden = true;
+    presEl.innerHTML = '';
+  }
+
   const list = document.getElementById('gp-list');
   list.innerHTML = '';
   nodes.slice(0, GP_LIST_MAX).forEach(n => {
@@ -4798,6 +4940,20 @@ function selectNode(n, skipFly, onDone) {
       isolatedTargetHintTimer = setTimeout(updateHint, 2800);
       return;
     }
+    // Une arrivée d'une AUTRE composante n'a aucun chemin depuis l'origine : on
+    // ne trace pas de « ∅ ». Refus, départ gardé armé, et on le dit — comme pour
+    // un isolé (la portée d'un chemin est bornée à la composante de l'origine).
+    if (!shortestPath(pathOrigin.id, n.id)) {
+      const msg = '« ' + n.label + ' » est dans une autre partie du réseau : aucun chemin ne l’y relie depuis « ' + pathOrigin.label + ' ».';
+      announceA11y(msg);
+      hintEl.textContent = msg;
+      clearTimeout(isolatedTargetHintTimer);
+      isolatedTargetHintTimer = setTimeout(updateHint, 2800);
+      return;
+    }
+    // On arme un POINT DE PASSAGE : ce clic l'insère dans la branche. Sinon,
+    // c'est une arrivée.
+    if (pathArmVia) { addPathVia(n.id); if (onDone) onDone(); return; }
     addPathTarget(n);
     if (onDone) onDone();
     return;
@@ -4970,22 +5126,136 @@ document.getElementById('detail-close').addEventListener('click', closePanel);
 
 // ============================================================ Chemin le plus court
 /**
- * BFS sur le graphe NON pondéré, tous liens confondus (connecteurs tracés
- * ET fils « même texte » — la fiche de chaque étape dit lequel). « Plus
- * court » = moins de SAUTS, pas moindre distance à l'écran. 71 nœuds sont
- * isolés et le graphe a 101 composantes : l'absence de chemin est un
- * RÉSULTAT, la barre l'affiche — pas un échec silencieux.
+ * Le chemin est une donnée PRINCIPIELLE, pas un tirage au sort. « Plus court »
+ * = moins de SAUTS (pas moindre distance à l'écran) ; mais plusieurs chemins
+ * peuvent avoir le même nombre de sauts. Le départage est ASSUMÉ : à sauts
+ * égaux, on préfère celui qui emprunte le plus de CONNECTEURS tracés à la main
+ * plutôt que de fils « même texte » (liens automatiques par répétition de
+ * texte). Autrement dit un tri lexicographique (sauts, puis nombre de « même
+ * texte »), résolu par un Dijkstra dont le poids d'une arête vaut BIG + 1 pour
+ * un « même texte » et BIG pour un connecteur — BIG écrase toujours le second
+ * critère, donc le nombre de sauts prime, et à égalité c'est le tracé le plus
+ * « dessiné » qui gagne. Sur la ligne, le trait DIT lequel : plein pour un
+ * connecteur, tirets pour un « même texte ».
  *
- * Le tracé est un ARBRE : depuis UNE origine armée, on peut désigner
- * plusieurs arrivées (« ＋ arrivée »), et l'on voit ce qui, dans le réseau,
- * relie ce nœud à deux ou trois autres à la fois — chaque branche est un plus
- * court chemin, calculé par un BFS depuis l'origine commune.
+ * Le graphe reste NON orienté (la moitié des connecteurs n'ont aucune pointe,
+ * census.dirs.none : un chemin peut donc remonter une flèche à contresens —
+ * c'est assumé). Le graphe se morcelle en de nombreuses composantes, dont des
+ * nœuds isolés ; une arrivée sans chemin est désormais REFUSÉE en amont (on ne
+ * peut pas tracer un « ∅ »).
+ *
+ * L'arbre depuis UNE origine peut porter plusieurs arrivées (« ＋ arrivée »).
+ * Chaque origine ne calcule son arbre de plus courts chemins qu'UNE fois
+ * (mémoïsation : le graphe ne change pas à l'exécution) — survol, recherche et
+ * tracé lisent alors le MÊME résultat, sans le recalculer.
  */
+const _spTreeCache = new Map(); // originId → { prev, hops, preds }
+// Poids d'une arête pour le tri lexicographique (sauts, puis « même texte ») :
+// BIG écrase toujours la pénalité, donc le nombre de sauts prime.
+const SP_BIG = NODES.length + 1;
+function edgeWeight(u, v) {
+  const ed = edgeBetween(u, v);
+  return SP_BIG + (ed && ed.e.type === 'connector' ? 0 : 1);
+}
+// L'arbre de plus courts chemins depuis `originId`, au sens lexicographique
+// ci-dessus. Dijkstra à extraction linéaire du minimum : le graphe est petit
+// (composantes de quelques dizaines de nœuds) et le résultat est mis en cache.
+// `preds` retient TOUS les prédécesseurs optimaux d'un nœud (le `prev` par
+// défaut en tête) : c'est ce qui permet d'énumérer les tracés de MÊME longueur
+// (variantes) sans les recalculer.
+function spTree(originId) {
+  let t = _spTreeCache.get(originId);
+  if (t) return t;
+  const cost = new Map([[originId, 0]]);
+  const prev = new Map([[originId, null]]);
+  const hops = new Map([[originId, 0]]);
+  const done = new Set();
+  for (;;) {
+    let u = null, best = Infinity;
+    for (const [id, c] of cost) { if (!done.has(id) && c < best) { best = c; u = id; } }
+    if (u === null) break;
+    done.add(u);
+    for (const { id } of adjacency.get(u) || []) {
+      if (done.has(id)) continue;
+      const nc = best + edgeWeight(u, id);
+      if (nc < (cost.has(id) ? cost.get(id) : Infinity)) {
+        cost.set(id, nc); prev.set(id, u); hops.set(id, hops.get(u) + 1);
+      }
+    }
+  }
+  // Reconstruction des prédécesseurs OPTIMAUX : toute arête u→v telle que
+  // cost[u] + poids(u,v) === cost[v] mène à un plus court chemin. Le `prev`
+  // choisi (variante 0) est remis en tête pour que la variante par défaut
+  // reste EXACTEMENT le chemin principiel.
+  const preds = new Map();
+  for (const v of cost.keys()) preds.set(v, []);
+  for (const v of cost.keys()) {
+    if (v === originId) continue;
+    const cv = cost.get(v);
+    for (const { id: u } of adjacency.get(v) || []) {
+      if (cost.has(u) && cost.get(u) + edgeWeight(u, v) === cv) preds.get(v).push(u);
+    }
+    const p = prev.get(v), arr = preds.get(v), k = arr.indexOf(p);
+    if (k > 0) { arr.splice(k, 1); arr.unshift(p); }
+  }
+  t = { prev, hops, preds };
+  _spTreeCache.set(originId, t);
+  return t;
+}
+
+// Jusqu'à `cap` tracés de MÊME longueur (au sens lexicographique) de `aId` à
+// `bId` — variante 0 = le chemin principiel. Remontée depuis l'arbre `preds`.
+const VARIANT_CAP = 24;
+function pathVariants(aId, bId, cap = VARIANT_CAP) {
+  if (aId === bId) return [[aId]];
+  const { preds } = spTree(aId);
+  if (!preds.has(bId) || !preds.get(bId).length) return [];
+  const out = [];
+  const path = [bId];
+  (function walk(v) {
+    if (out.length >= cap) return;
+    if (v === aId) { out.push(path.slice().reverse()); return; }
+    for (const u of preds.get(v) || []) {
+      path.push(u); walk(u); path.pop();
+      if (out.length >= cap) return;
+    }
+  })(bId);
+  return out;
+}
+
+// Le tracé d'une branche DÉFINIE PAR SES ÉTAPES (origine → étapes → arrivée) et
+// son indice de variante. Entre deux étapes consécutives on prend un plus court
+// chemin ; l'ensemble des combinaisons (produit des variantes par tronçon) est
+// indexé par `variant`. Renvoie { ids, count } — count = nombre de tracés de
+// même longueur possibles pour CETTE suite d'étapes.
+function branchPath(originId, stops, variant) {
+  const chain = [originId, ...stops];
+  const perPair = [];
+  for (let s = 0; s < chain.length - 1; s++) {
+    const vs = pathVariants(chain[s], chain[s + 1]);
+    if (!vs.length) return { ids: null, count: 0 };
+    perPair.push(vs);
+  }
+  const counts = perPair.map(p => p.length);
+  const total = counts.reduce((a, b) => a * b, 1);
+  let rem = ((variant % total) + total) % total;
+  const ids = [];
+  for (let s = 0; s < perPair.length; s++) {
+    const pick = rem % counts[s]; rem = Math.floor(rem / counts[s]);
+    const seg = perPair[s][pick];
+    if (s === 0) ids.push(...seg); else ids.push(...seg.slice(1));
+  }
+  return { ids, count: total };
+}
+
 // pathOrigin / pathArmTree / pathColorN sont déclarés près de `activeBranch` :
 // updateVisuals lit pathOrigin au montage (même raison de zone morte temporelle).
 const pathBtnEl = document.getElementById('path-from-btn');
 const pathPanel = document.getElementById('path-panel');
 const ppArm = document.getElementById('pp-arm');
+const ppArmMsg = document.getElementById('pp-arm-msg');
+const ppSearch = document.getElementById('pp-search');
+const ppSearchResults = document.getElementById('pp-search-results');
 const ppList = document.getElementById('pp-list');
 const ppHint = document.getElementById('pp-hint');
 const ppCount = document.getElementById('pp-count');
@@ -5031,22 +5301,15 @@ function branchInFocus(ids) {
   return !state.egoId || state.egoDist.get(ids[0]) !== undefined;
 }
 
+// Le chemin de `aId` à `bId`, remonté depuis l'arbre mémoïsé de l'origine.
+// `null` s'il n'y en a pas (autre composante) — un RÉSULTAT, pas une erreur.
 function shortestPath(aId, bId) {
-  const prev = new Map([[aId, null]]);
-  const queue = [aId];
-  for (let i = 0; i < queue.length; i++) {
-    for (const { id } of adjacency.get(queue[i]) || []) {
-      if (prev.has(id)) continue;
-      prev.set(id, queue[i]);
-      if (id === bId) {
-        const path = [];
-        for (let p = id; p !== null; p = prev.get(p)) path.push(p);
-        return path.reverse();
-      }
-      queue.push(id);
-    }
-  }
-  return null;
+  if (aId === bId) return [aId];
+  const { prev } = spTree(aId);
+  if (!prev.has(bId)) return null;
+  const path = [];
+  for (let p = bId; p !== null; p = prev.get(p)) path.push(p);
+  return path.reverse();
 }
 
 // Sets combinés (surbrillance + extrémités) sur TOUTE la collection.
@@ -5065,6 +5328,8 @@ function recomputePathSets() {
 function armPath(node, tree) {
   pathOrigin = node || null;
   pathArmTree = node ? (tree || null) : null;
+  pathArmVia = null;  // armer une arrivée (ou désarmer) annule un armement d'étape
+  pathPreview = null; // toute prévisualisation en cours tombe avec l'ancien armement
   const armed = !!pathOrigin;
   pathBtnEl.classList.toggle('armed', armed);
   pathBtnEl.textContent = armed ? '⇢ cliquez l\'arrivée…' : '⇢ Tracer un chemin';
@@ -5077,29 +5342,78 @@ function armPath(node, tree) {
   updateVisuals();
 }
 
+// Armer un POINT DE PASSAGE (« passant par… ») pour une branche : le prochain
+// nœud choisi (clic ou recherche) s'INSÈRE comme étape avant l'arrivée. On
+// réutilise tout l'appareil d'armement (curseur, invite, recherche, refus d'un
+// isolé) via pathOrigin = l'origine de la branche.
+function armVia(ti, si) {
+  const T = state.paths[ti];
+  if (!T || !T.segStops[si]) return;
+  pathArmVia = { ti, si };
+  pathOrigin = nodeById.get(T.originId);
+  pathArmTree = null;
+  pathPreview = null;
+  pathBtnEl.classList.add('armed');
+  pathBtnEl.textContent = '⇢ cliquez l\'étape…';
+  document.body.classList.add('path-arming');
+  renderPathPanel();
+  updateHint();
+  updateVisuals();
+}
+
+// Un arbre vierge (une origine, aucune branche encore).
+function newTree(originId) {
+  return { originId, targetIds: [], segStops: [], segVariant: [], segColors: [],
+           segColorN: [], segments: [], segVariantCount: [],
+           nodeSet: new Set([originId]), endSet: new Set([originId]) };
+}
+// Ajoute à `T` une branche DÉFINIE par ses étapes (via… puis arrivée) et sa
+// variante ; recompte son tracé. Renvoie son index, ou -1 si la suite est
+// injoignable (aucun chemin — ne devrait arriver qu'après régénération du graphe).
+// (Nommée addBranch et non pushBranch : `updatePathLine` a une locale pushBranch.)
+function addBranch(T, stops, colorN, variant) {
+  const r = branchPath(T.originId, stops, variant || 0);
+  if (!r.ids) return -1;
+  const i = T.segStops.length;
+  T.segStops.push(stops.slice());
+  T.segVariant.push(variant || 0);
+  T.segColors.push(branchColor(colorN));
+  T.segColorN.push(colorN);
+  T.segments.push(r.ids);
+  T.segVariantCount.push(r.count);
+  T.targetIds.push(stops[stops.length - 1]);
+  rebuildTreeSets(T);
+  return i;
+}
+// Recompte une branche après ajout/retrait d'étape ou changement de variante.
+function recomputeBranch(T, i) {
+  const r = branchPath(T.originId, T.segStops[i], T.segVariant[i]);
+  T.segments[i] = r.ids || [];
+  T.segVariantCount[i] = r.count;
+  T.targetIds[i] = T.segStops[i][T.segStops[i].length - 1];
+  rebuildTreeSets(T);
+}
+
 // Le clic-arrivée : ajoute une arrivée à l'arbre visé, ou démarre un NOUVEAU
-// chemin (autre départ) si aucun arbre n'était visé.
-function addPathTarget(target, skipFly = false) {
+// chemin (autre départ) si aucun arbre n'était visé. `forceColorN` rejoue la
+// couleur exacte d'une branche restaurée depuis un lien partagé (sinon la
+// prochaine couleur de la file, pathColorN).
+function addPathTarget(target, skipFly = false, forceColorN = null) {
   const originNode = pathOrigin;
   let T = pathArmTree;
   armPath(null); // désarme
-  if (!T) {
-    T = { originId: originNode.id, targetIds: [], segments: [], segColors: [], nodeSet: new Set([originNode.id]), endSet: new Set([originNode.id]), misses: [] };
-    state.paths.push(T);
-  }
+  if (!T) { T = newTree(originNode.id); state.paths.push(T); }
   if (target.id !== T.originId && !T.targetIds.includes(target.id)) {
-    const ids = shortestPath(T.originId, target.id);
-    T.targetIds.push(target.id);
-    if (!ids) {
-      T.misses.push(target.id);            // autre composante : pas de chemin
-    } else {
-      T.segments.push(ids);
-      T.segColors.push(branchColor(pathColorN++));
-      ids.forEach(id => T.nodeSet.add(id));
-      T.endSet.add(target.id);
-    }
+    // Une arrivée sans chemin (autre composante) n'est plus admise : le clic la
+    // refuse en amont (selectNode), la recherche la grise. Ici, seul un lien
+    // partagé vers un graphe RÉGÉNÉRÉ peut en présenter une — pushBranch renvoie
+    // alors -1 et on l'ignore, sans laisser de « ∅ » dans la route.
+    const forced = forceColorN != null && forceColorN >= 0;
+    const k = forced ? forceColorN : pathColorN;
+    if (addBranch(T, [target.id], k, 0) >= 0) pathColorN = Math.max(pathColorN + (forced ? 0 : 1), k + 1);
   }
-  // Un arbre neuf sans aucune cible (clic sur sa propre origine) ne sert à rien.
+  // Un arbre neuf sans aucune arrivée (clic sur sa propre origine, ou arrivée
+  // ignorée) ne sert à rien.
   if (!T.targetIds.length) { const i = state.paths.indexOf(T); if (i >= 0) state.paths.splice(i, 1); }
   recomputePathSets();
   state.selectedId = null;
@@ -5108,6 +5422,66 @@ function addPathTarget(target, skipFly = false) {
   updateVisuals();
   syncUrl();
   if (!skipFly && state.pathNodes) flyToGroup([...state.pathNodes].map(id => nodeById.get(id)));
+}
+
+// L'insertion d'un POINT DE PASSAGE dans une branche (avant l'arrivée), puis
+// recompte. La variante repart de 0 (nouvelle suite d'étapes).
+function addPathVia(viaId) {
+  const av = pathArmVia;
+  armPath(null); // désarme (remet pathArmVia à null)
+  if (!av) return;
+  const T = state.paths[av.ti];
+  if (!T || !T.segStops[av.si]) return;
+  const stops = T.segStops[av.si];
+  if (viaId === T.originId || stops.includes(viaId)) { renderPathPanel(); return; } // déjà dans la branche
+  stops.splice(stops.length - 1, 0, viaId); // avant l'arrivée
+  T.segVariant[av.si] = 0;
+  recomputeBranch(T, av.si);
+  recomputePathSets();
+  renderPathPanel();
+  updateVisuals();
+  syncUrl();
+}
+// Le retrait d'un point de passage (jamais l'arrivée), puis recompte.
+function removePathVia(ti, si, viaId) {
+  const T = state.paths[ti];
+  if (!T || !T.segStops[si]) return;
+  const stops = T.segStops[si];
+  const k = stops.indexOf(viaId);
+  if (k < 0 || k === stops.length - 1) return;
+  stops.splice(k, 1);
+  T.segVariant[si] = 0;
+  recomputeBranch(T, si);
+  recomputePathSets();
+  renderPathPanel();
+  updateVisuals();
+  syncUrl();
+}
+// Parcourir les tracés de MÊME longueur d'une branche (variantes).
+function cyclePathVariant(ti, si, dir) {
+  const T = state.paths[ti];
+  if (!T || T.segVariantCount[si] <= 1) return;
+  const n = T.segVariantCount[si];
+  T.segVariant[si] = ((T.segVariant[si] + dir) % n + n) % n;
+  recomputeBranch(T, si);
+  recomputePathSets();
+  renderPathPanel();
+  updateVisuals();
+  syncUrl();
+}
+// Le tracé qu'AURAIT la branche armée si elle passait par `viaId` — pour la
+// prévisualisation pendant qu'on choisit un point de passage. null si le nœud
+// est déjà dans la branche, ou injoignable.
+function previewViaPath(viaId) {
+  const av = pathArmVia;
+  if (!av) return null;
+  const T = state.paths[av.ti];
+  if (!T || !T.segStops[av.si]) return null;
+  const stops = T.segStops[av.si];
+  if (viaId === T.originId || stops.includes(viaId)) return null;
+  const trial = stops.slice();
+  trial.splice(trial.length - 1, 0, viaId);
+  return branchPath(T.originId, trial, 0).ids;
 }
 
 function removePathTree(T) {
@@ -5129,19 +5503,14 @@ function removePathTree(T) {
 function removePathBranch(ti, si) {
   const T = state.paths[ti];
   if (!T || !T.segments[si]) return;
-  const ids = T.segments[si];
-  const targetId = ids[ids.length - 1];
-  T.segments.splice(si, 1);
+  T.segStops.splice(si, 1);
+  T.segVariant.splice(si, 1);
   T.segColors.splice(si, 1);
-  T.targetIds = T.targetIds.filter(id => id !== targetId);
+  T.segColorN.splice(si, 1);
+  T.segments.splice(si, 1);
+  T.segVariantCount.splice(si, 1);
+  T.targetIds.splice(si, 1);
   rebuildTreeSets(T);
-  finishPathEdit(T);
-}
-// Retirer une arrivée « hors d'atteinte » (aucun chemin) : elle ne vit que dans
-// targetIds et misses, jamais dans les segments ni les ensembles surlignés.
-function removePathMiss(T, id) {
-  T.misses = T.misses.filter(x => x !== id);
-  T.targetIds = T.targetIds.filter(x => x !== id);
   finishPathEdit(T);
 }
 // Les ensembles d'un arbre (nœuds surlignés, extrémités) se REDÉDUISENT de ses
@@ -5162,9 +5531,17 @@ function finishPathEdit(T) {
   syncUrl();
 }
 
-// Une branche (origine → arrivée) dans le panneau : pastille couleur, cible,
-// nb de sauts, et le détail des étapes dépliable.
+// Une branche (origine → étapes → arrivée) dans le panneau : pastille couleur,
+// cible, sélecteur de variante si plusieurs tracés de même longueur, nb de
+// sauts, et le détail dépliable (étapes, points de passage retirables, « passant
+// par… »).
 function buildBranchRow(ids, color, ti, si) {
+  const T = state.paths[ti];
+  const stops = T.segStops[si];
+  const variantCount = T.segVariantCount[si] || 1;
+  const variant = T.segVariant[si] || 0;
+  const vias = new Set(stops.slice(0, -1)); // les points de passage (hors arrivée)
+
   const br = document.createElement('div'); br.className = 'pp-branch';
   // La couleur de la branche REMONTE dans sa ligne : liseré, pastille, nom de
   // l'arrivée. Dépliée, c'est elle qui tient le bloc — de quoi rattacher sans
@@ -5172,29 +5549,58 @@ function buildBranchRow(ids, color, ti, si) {
   br.style.setProperty('--branch', color);
   const outOfFocus = !branchInFocus(ids);
   if (outOfFocus) br.classList.add('out');
+  // Sous un recentrage, la branche peut dépasser la profondeur affichée : elle
+  // reste tracée en entier mais s'estompe au-delà sur la carte. On le DIT ici.
+  const beyondDepth = !!state.egoId && ids.some(id => { const d = state.egoDist.get(id); return d !== undefined && d > state.egoDepth; });
+  if (beyondDepth) br.classList.add('beyond');
   if (isActiveBranch(ti, si)) br.classList.add('open', 'active');
 
   const row = document.createElement('div'); row.className = 'pp-brow';
   const target = nodeById.get(ids[ids.length - 1]);
   row.innerHTML = `<span class="pp-swatch"></span>`
     + `<span class="pp-target"></span>`
+    + (beyondDepth ? `<span class="pp-beyond" title="ce chemin dépasse la profondeur affichée du recentrage — il reste entier, estompé au-delà">⋯</span>` : '')
+    + (variantCount > 1 ? `<span class="pp-variant" title="plusieurs tracés de même longueur — parcourir les variantes"><span class="pp-var-prev" title="variante précédente">‹</span><span class="pp-var-n"></span><span class="pp-var-next" title="variante suivante">›</span></span>` : '')
     + `<span class="pp-hops">${ids.length - 1} saut${ids.length > 2 ? 's' : ''}</span>`
     + `<span class="pp-bdel" title="retirer cette arrivée">✕</span>`;
   row.querySelector('.pp-target').textContent = '→ ' + target.label;
   // Le ✕ retire CETTE arrivée seule ; stopPropagation pour ne pas aussi
   // déclencher l'accordéon de la ligne.
   row.querySelector('.pp-bdel').addEventListener('click', (e) => { e.stopPropagation(); removePathBranch(ti, si); });
+  if (variantCount > 1) {
+    row.querySelector('.pp-var-n').textContent = `${variant + 1}/${variantCount}`;
+    row.querySelector('.pp-var-prev').addEventListener('click', (e) => { e.stopPropagation(); cyclePathVariant(ti, si, -1); });
+    row.querySelector('.pp-var-next').addEventListener('click', (e) => { e.stopPropagation(); cyclePathVariant(ti, si, +1); });
+  }
   row.title = outOfFocus
     ? (target.fullText || target.label) + ' — hors du champ courant : ce chemin sort du sous-ensemble affiché (recentrage ou recherche), il réapparaîtra en sortant'
     : (target.fullText || target.label) + ' — cliquer : mettre CE chemin en avant, détailler ses étapes et le cadrer';
   const steps = document.createElement('div'); steps.className = 'pp-steps';
   ids.forEach(id => {
     const n = nodeById.get(id);
-    const s = document.createElement('div'); s.className = 'pp-step';
-    s.textContent = n.label; s.title = n.fullText || n.label;
-    s.addEventListener('click', (e) => { e.stopPropagation(); selectNode(n); });
+    const isVia = vias.has(id);
+    const s = document.createElement('div'); s.className = 'pp-step' + (isVia ? ' via' : '');
+    s.title = (n.fullText || n.label) + (isVia ? ' — point de passage imposé (✕ pour le retirer)' : '');
+    if (isVia) {
+      // Un point de passage : distinct, et retirable indépendamment (comme une
+      // arrivée). Son nom ouvre la fiche, son ✕ le retire.
+      s.innerHTML = `<span class="pp-step-lbl"></span><span class="pp-via-del" title="retirer ce point de passage">✕</span>`;
+      s.querySelector('.pp-step-lbl').textContent = n.label;
+      s.querySelector('.pp-step-lbl').addEventListener('click', (e) => { e.stopPropagation(); selectNode(n); });
+      s.querySelector('.pp-via-del').addEventListener('click', (e) => { e.stopPropagation(); removePathVia(ti, si, id); });
+    } else {
+      s.textContent = n.label;
+      s.addEventListener('click', (e) => { e.stopPropagation(); selectNode(n); });
+    }
     steps.appendChild(s);
   });
+  // « Passant par… » : imposer un nœud d'étape à CE chemin (parmi plusieurs plus
+  // courts chemins, on CHOISIT par où l'on passe).
+  const viaAdd = document.createElement('div'); viaAdd.className = 'pp-via-add';
+  viaAdd.textContent = '＋ passant par…';
+  viaAdd.title = 'Faire passer ce chemin par un nœud d’étape (clic sur la carte, ou recherche dans le menu)';
+  viaAdd.addEventListener('click', (e) => { e.stopPropagation(); armVia(ti, si); });
+  steps.appendChild(viaAdd);
   row.addEventListener('click', () => {
     // Accordéon : une seule branche en avant à la fois.
     const opening = !isActiveBranch(ti, si);
@@ -5216,19 +5622,35 @@ function renderPathPanel() {
   // reste replié — mais un ARMEMENT rouvre, l'invite doit se voir).
   if (wasHidden || pathOrigin) foldPath(false);
 
-  // Invite d'armement : dit d'où l'on part et si c'est un nouveau chemin.
+  // Invite d'armement : dit d'où l'on part et si c'est un nouveau chemin. On
+  // n'écrit QUE le message (#pp-arm-msg) — la barre de recherche et sa liste, elles,
+  // persistent pour ne pas perdre focus ni saisie à chaque re-rendu du panneau.
   ppArm.hidden = !pathOrigin;
   if (pathOrigin) {
-    const kind = pathArmTree ? 'arrivée de plus depuis' : 'nouveau chemin depuis';
-    ppArm.innerHTML = `${kind} <b></b> — cliquez le nœud d'arrivée · <i>Échap annule</i>`;
-    ppArm.querySelector('b').textContent = '« ' + pathOrigin.label + ' »';
+    if (pathArmVia) {
+      const T = state.paths[pathArmVia.ti];
+      const tgt = T && nodeById.get(T.targetIds[pathArmVia.si]);
+      ppArmMsg.innerHTML = `passant par… <b></b> — cliquez un nœud d'étape, ou cherchez-le · <i>Échap annule</i>`;
+      ppArmMsg.querySelector('b').textContent = tgt ? '(chemin vers « ' + tgt.label + ' »)' : '';
+    } else {
+      const kind = pathArmTree ? 'arrivée de plus depuis' : 'nouveau chemin depuis';
+      ppArmMsg.innerHTML = `${kind} <b></b> — cliquez un nœud, ou cherchez-le · <i>Échap annule</i>`;
+      ppArmMsg.querySelector('b').textContent = '« ' + pathOrigin.label + ' »';
+    }
+    renderPathSearch();   // reflète l'origine et les filtres courants
+  } else if (ppSearch.value) {
+    ppSearch.value = '';  // désarmé : la barre repart vierge
+    renderPathSearch();
   }
   ppHint.hidden = has || !!pathOrigin;
 
-  let nB = 0, nMiss = 0;
-  state.paths.forEach(T => { nB += T.segments.length; nMiss += T.misses.length; });
+  // Plus de « ∅ » : une route ne porte que des arrivées atteignables (les autres
+  // sont refusées en amont), donc chaque branche est un chemin — le compteur les
+  // dénombre simplement.
+  let nB = 0;
+  state.paths.forEach(T => { nB += T.segments.length; });
   ppCount.textContent = has ? String(nB) : '';
-  pathPanel.title = nMiss ? `${nB} chemin·s · ${nMiss} nœud·s hors d’atteinte` : '';
+  pathPanel.title = '';
 
   ppList.innerHTML = '';
   state.paths.forEach((T, ti) => {
@@ -5242,17 +5664,6 @@ function renderPathPanel() {
     head.querySelector('.pp-tdel').addEventListener('click', (e) => { e.stopPropagation(); removePathTree(T); });
     grp.appendChild(head);
     T.segments.forEach((ids, i) => grp.appendChild(buildBranchRow(ids, T.segColors[i], ti, i)));
-    T.misses.forEach(id => {
-      const n = nodeById.get(id);
-      const br = document.createElement('div'); br.className = 'pp-branch miss';
-      br.innerHTML = `<div class="pp-brow" style="cursor:default"><span class="pp-swatch"></span>`
-        + `<span class="pp-target"></span><span class="pp-hops">∅</span>`
-        + `<span class="pp-bdel" title="retirer cette arrivée">✕</span></div>`;
-      br.querySelector('.pp-target').textContent = '→ ' + n.label + ' — aucun chemin';
-      br.title = 'Ce nœud est dans une autre composante : aucun lien ne l’atteint depuis l’origine.';
-      br.querySelector('.pp-bdel').addEventListener('click', (e) => { e.stopPropagation(); removePathMiss(T, id); });
-      grp.appendChild(br);
-    });
     const add = document.createElement('div'); add.className = 'pp-tadd';
     add.textContent = '＋ arrivée';
     add.title = 'Ajouter un chemin à cette route, depuis « ' + origin.label + ' »';
@@ -5260,8 +5671,85 @@ function renderPathPanel() {
     grp.appendChild(add);
     ppList.appendChild(grp);
   });
+  // La clé de lecture du TRAIT, seulement quand des chemins sont posés : la
+  // couleur dit la branche, le trait dit la nature du lien franchi.
+  if (has) {
+    const lg = document.createElement('div'); lg.className = 'pp-legend';
+    lg.innerHTML = '<span class="pp-lg-solid"></span>lien tracé'
+      + '<span class="pp-lg-dash"></span>« même texte »';
+    lg.title = 'Sur la carte : trait plein = connecteur tracé à la main · tirets = fil « même texte » (deux post-its au texte identique). À sauts égaux, un chemin préfère les connecteurs.';
+    ppList.appendChild(lg);
+  }
   reflow();
 }
+
+// La recherche d'arrivée du menu chemin : suggestions LIVE (sans Entrée),
+// filtrées comme la carte (nodeMatchesFilter, « selon les paramètres du site »)
+// ET, sous une recherche lexicale, bornées au SOUS-CORPUS affiché — on ne
+// propose pas une arrivée qu'on ne verrait pas et qui tomberait aussitôt hors
+// champ. Chaque suggestion DIT sa distance au départ (N sauts) ; celle qu'on ne
+// peut pas tracer — isolée ou d'une autre partie du réseau — est GRISÉE et non
+// cliquable (on ne trace pas de « ∅ »). Cliquer une suggestion atteignable
+// revient à cliquer le nœud sur la carte (selectNode → addPathTarget).
+function renderPathSearch() {
+  ppSearchResults.innerHTML = '';
+  ppSearchResults.classList.remove('show');
+  if (!pathOrigin) return;
+  const q = ppSearch.value.trim();
+  const match = q.length >= 2 ? queryMatcher(q) : null;
+  const viaMode = !!pathArmVia;
+  // En mode « passant par… », on exclut les nœuds DÉJÀ dans la branche (origine,
+  // étapes, arrivée) et une suggestion pose une ÉTAPE ; sinon on exclut l'origine
+  // et les arrivées déjà posées, et une suggestion pose une ARRIVÉE.
+  const already = viaMode
+    ? new Set([state.paths[pathArmVia.ti].originId, ...state.paths[pathArmVia.ti].segStops[pathArmVia.si]])
+    : new Set([pathOrigin.id, ...(pathArmTree ? pathArmTree.targetIds : [])]);
+  const inSubcorpus = n => !state.lexicalFocus || state.lexicalFocus.assignments.has(n.id);
+  const matches = match
+    ? LEAVES.filter(n => !already.has(n.id) && nodeMatchesFilter(n) && inSubcorpus(n) && match(n.__norm)).slice(0, 30)
+    : [];
+  if (!matches.length) return;
+  matches.forEach(n => {
+    const isolated = !(adjacency.get(n.id) || []).length;
+    // Le tracé montré/posé : le chemin résultant PASSANT PAR le nœud (mode via),
+    // ou le plus court chemin vers lui (mode arrivée).
+    const ids = isolated ? null : (viaMode ? previewViaPath(n.id) : shortestPath(pathOrigin.id, n.id));
+    const reachable = !!ids;
+    const sec = SECTIONS.find(s => s.id === n.section) || { name: n.label, color: n.sectionColor };
+    const row = document.createElement('div');
+    row.className = 'pp-sr-item' + (reachable ? '' : ' unreach');
+    row.innerHTML = `<span class="pp-sr-sec" style="color:${sec.color}"></span>`
+      + `<span class="pp-sr-lbl"></span><span class="pp-sr-hops"></span>`;
+    row.querySelector('.pp-sr-sec').textContent = sec.name;
+    row.querySelector('.pp-sr-lbl').textContent = (n.fullText || n.label).slice(0, 80);
+    row.querySelector('.pp-sr-hops').textContent = isolated ? 'isolé'
+      : reachable ? `${ids.length - 1} saut${ids.length > 2 ? 's' : ''}` : 'aucun chemin';
+    row.title = reachable
+      ? (n.fullText || n.label)
+      : (n.fullText || n.label) + ' — non traçable : ' + (isolated ? 'nœud isolé' : 'autre partie du réseau');
+    if (reachable) {
+      // Survoler prévisualise le tracé ; cliquer le pose. Inatteignable : aucune
+      // préviz, aucun clic — la ligne grisée dit seulement pourquoi.
+      row.addEventListener('mouseenter', () => { pathPreview = ids; });
+      row.addEventListener('click', () => selectNode(n));
+    } else {
+      row.addEventListener('mouseenter', () => { pathPreview = null; });
+    }
+    ppSearchResults.appendChild(row);
+  });
+  ppSearchResults.classList.add('show');
+}
+ppSearch.addEventListener('input', renderPathSearch);
+// La frappe reste DANS la barre : elle ne doit pas déclencher les raccourcis carte.
+// Échap y annule l'armement, comme partout.
+ppSearch.addEventListener('keydown', (e) => {
+  e.stopPropagation();
+  if (e.key === 'Escape') armPath(null);
+});
+// Tant que le curseur est sur la liste, c'est elle qui pilote la prévisualisation ;
+// on la relâche en sortant (voir aussi le garde dans updateHover).
+ppSearchResults.addEventListener('mouseenter', () => { overPathSearch = true; });
+ppSearchResults.addEventListener('mouseleave', () => { overPathSearch = false; pathPreview = null; });
 
 /**
  * Le panneau des chemins n'a pas de position propre : il SE COLLE à la
@@ -5303,7 +5791,11 @@ function positionPathPanel() {
  * Resserrée, ses lignes s'enroulent (flex-wrap) et elle gagne en hauteur.
  */
 function positionEgoBar() {
-  if (!state.egoId) return;
+  // La barre lexicale EST cette barre (classe .lexical) : elle doit suivre les
+  // MÊMES règles de dimension, de centrage et de responsive. En focus lexical,
+  // `egoId` est nul — sans ce second test, la barre du mot restait non
+  // dimensionnée et ne se recentrait pas au redimensionnement de la fenêtre.
+  if (!state.egoId && !state.lexicalFocus) return;
   const lr = legendEl.getBoundingClientRect();
   let leftB = lr.right;
   if (!pathPanel.hidden) leftB = Math.max(leftB, pathPanel.getBoundingClientRect().right);
@@ -5373,17 +5865,47 @@ pathPanel.addEventListener('click', () => { if (pathPanel.classList.contains('fo
 // dizaines de points) — ils suivent donc aussi la transition entre dispositions
 // sans cas particulier. LineSegments (paires) parce que l'arbre a des branches,
 // couleurs par sommet parce que chaque branche a la sienne.
-const pathLine = new THREE.LineSegments(
-  new THREE.BufferGeometry(),
-  new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95, depthWrite: false })
-);
-pathLine.visible = false;
-// Sa géométrie est réécrite à CHAQUE image sans recalcul de sphère englobante :
-// celle-ci reste figée sur la première pose du chemin. Zoom serré, le frustum ne
-// la rencontrait plus et Three éliminait TOUTE la ligne (le chemin « disparaît »
-// de trop près). Le chemin est un seul objet, léger : on le sort du test.
-pathLine.frustumCulled = false;
-scene.add(pathLine);
+//
+// DEUX objets par tracé : un chemin mêle deux natures d'arête et on les
+// distingue par le TRAIT — pas par la couleur, réservée à l'identité de la
+// branche. Trait PLEIN pour un connecteur dessiné, TIRETS pour un fil « même
+// texte ». Le pointillé reprend la technique et la taille des arêtes de la
+// carte (LineDashedMaterial + distance par sommet, calculée dans le tracé).
+const PATH_DASH = { dashSize: 1.6, gapSize: 1.2 };
+function makePathLines(opacity) {
+  const solid = new THREE.LineSegments(
+    new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity, depthWrite: false })
+  );
+  const dashed = new THREE.LineSegments(
+    new THREE.BufferGeometry(),
+    new THREE.LineDashedMaterial({ vertexColors: true, transparent: true, opacity, depthWrite: false, dashSize: PATH_DASH.dashSize, gapSize: PATH_DASH.gapSize })
+  );
+  // Géométrie réécrite à CHAQUE image sans recalcul de sphère englobante
+  // (figée sur la première pose) : au zoom serré, le frustum ne la rencontrait
+  // plus et Three éliminait TOUTE la ligne (le chemin « disparaît » de trop
+  // près). Objets légers : on les sort du test.
+  solid.visible = dashed.visible = false;
+  solid.frustumCulled = dashed.frustumCulled = false;
+  scene.add(solid); scene.add(dashed);
+  return { solid, dashed };
+}
+// Verse un « puits » de segments dans ses deux LineSegments (plein + tirets) et
+// règle leur visibilité ; le pointillé porte en plus sa distance par sommet.
+function applyLineSink(lines, sink) {
+  if (sink.sPts.length) {
+    lines.solid.geometry.setAttribute('position', new THREE.Float32BufferAttribute(sink.sPts, 3));
+    lines.solid.geometry.setAttribute('color', new THREE.Float32BufferAttribute(sink.sCols, 3));
+    lines.solid.visible = true;
+  } else lines.solid.visible = false;
+  if (sink.dPts.length) {
+    lines.dashed.geometry.setAttribute('position', new THREE.Float32BufferAttribute(sink.dPts, 3));
+    lines.dashed.geometry.setAttribute('color', new THREE.Float32BufferAttribute(sink.dCols, 3));
+    lines.dashed.geometry.setAttribute('lineDistance', new THREE.Float32BufferAttribute(sink.dDist, 1));
+    lines.dashed.visible = true;
+  } else lines.dashed.visible = false;
+}
+const pathLines = makePathLines(0.95);
 const _branchCol = new THREE.Color();
 /**
  * L'arête qui relie deux nœuds, et le SENS où on la parcourt.
@@ -5409,13 +5931,84 @@ const edgePairIndex = (() => {
 function edgeBetween(a, b) { return edgePairIndex.get(a + '|' + b) || null; }
 
 const _pathPt = { x: 0, y: 0, z: 0 };
+// Atténuation d'un nœud « au-delà de la profondeur du recentrage ». Le chemin
+// reste ENTIER même là (choix assumé : une donnée logique ne se coupe pas à
+// mi-parcours) — mais sa portion qui sort de la profondeur affichée s'efface,
+// dans le même langage que la carte, qui atténue déjà ces nœuds. Hors
+// recentrage, ou en deçà de la profondeur : plein (1).
+const PATH_BEYOND_DEPTH = 0.4;
+function depthDim(id) {
+  if (!state.egoId) return 1;
+  const d = state.egoDist.get(id);
+  return (d === undefined || d <= state.egoDepth) ? 1 : PATH_BEYOND_DEPTH;
+}
+// Le tracé d'UNE polyligne d'ids (chemin posé OU prévisualisation) dans un
+// « puits » : segments PLEINS (connecteur) et TIRETÉS (« même texte ») séparés,
+// plus la distance-le-long-du-trait des tirets. On suit le TRAJET des arêtes
+// (coudes du routage compris), pas la corde. La couleur (identité de branche)
+// est modulée par sommet selon la profondeur du recentrage. Partagé pour que la
+// prévisualisation ne dérive JAMAIS du tracé réel : même géométrie, même règle,
+// même aiguillage plein/tirets. sink = { sPts, sCols, dPts, dCols, dDist }.
+function pushRoutedSegments(ids, cr, cg, cb, sink) {
+  for (let k = 0; k < ids.length - 1; k++) {
+    const ga = nodeById.get(ids[k])?.__group, gb = nodeById.get(ids[k + 1])?.__group;
+    if (!ga || !gb) continue;
+    // Un chemin surligne des ARÊTES : il épouse le trajet de l'arête. Tracé en
+    // corde par-dessus un circuit, il désignerait un lien en passant par où ce
+    // lien ne passe pas — il montrerait autre chose que ce qu'il surligne.
+    const ed = edgeBetween(ids[k], ids[k + 1]);
+    const r = ed ? routeOf(ed.e) : null;
+    // Trait plein pour un connecteur dessiné, tirets pour un fil « même texte »
+    // (sans arête retrouvée — cas théorique —, on garde le trait plein).
+    const concept = !!ed && ed.e.type !== 'connector';
+    const pts = concept ? sink.dPts : sink.sPts;
+    const cols = concept ? sink.dCols : sink.sCols;
+    const dist = concept ? sink.dDist : null;
+    // La route est écrite de `source` vers `target` : parcourue à l'envers, elle
+    // se lit à l'envers (voir edgeBetween.flip). A = extrémité de DÉPART du tracé.
+    const A = ed && ed.flip ? gb : ga, B = ed && ed.flip ? ga : gb;
+    const dimA = depthDim(ed && ed.flip ? ids[k + 1] : ids[k]);
+    const dimB = depthDim(ed && ed.flip ? ids[k] : ids[k + 1]);
+    let run = 0;
+    for (let s = 0; s < ROUTE_SEGS; s++) {
+      const k0 = ed && ed.flip ? ROUTE_SEGS - s : s;
+      const k1 = ed && ed.flip ? ROUTE_SEGS - s - 1 : s + 1;
+      // Fondu de profondeur interpolé le long du tracé A→B (`s` progresse
+      // toujours de A vers B, quel que soit le sens de la route).
+      const d0 = dimA + (dimB - dimA) * (s / ROUTE_SEGS);
+      const d1 = dimA + (dimB - dimA) * ((s + 1) / ROUTE_SEGS);
+      // Des NOMBRES, pas des Vector3 : cette fonction tourne à chaque image (voir
+      // animate), et un chemin de dix nœuds en aurait alloué quatre-vingt-dix par
+      // image — exactement le coût que ce fichier a mesuré et retiré ailleurs.
+      routePointAt(A.position, B.position, r, k0, _pathPt);
+      const x0 = _pathPt.x, y0 = _pathPt.y, z0 = _pathPt.z;
+      routePointAt(A.position, B.position, r, k1, _pathPt);
+      const x1 = _pathPt.x, y1 = _pathPt.y, z1 = _pathPt.z;
+      pts.push(x0, y0, z0, x1, y1, z1);
+      cols.push(cr * d0, cg * d0, cb * d0, cr * d1, cg * d1, cb * d1);
+      if (dist) {
+        // Distance PARCOURUE depuis le début de CETTE arête (coudes compris) : le
+        // motif ne se brise pas aux angles, et repart à zéro à chaque arête
+        // « même texte » — chaque saut est son propre pointillé.
+        dist.push(run);
+        run += Math.hypot(x1 - x0, y1 - y0, z1 - z0);
+        dist.push(run);
+      }
+    }
+  }
+}
+
+// Un puits réutilisé d'une image à l'autre (on remet ses tableaux à zéro plutôt
+// que d'en réallouer) : voir _ca/_cb ailleurs, même souci d'allocation.
+const _pathSink = { sPts: [], sCols: [], dPts: [], dCols: [], dDist: [] };
+function clearSink(s) { s.sPts.length = s.sCols.length = s.dPts.length = s.dCols.length = s.dDist.length = 0; }
 function updatePathLine() {
-  if (!state.paths.length) { pathLine.visible = false; return; }
-  const pts = [];
-  const cols = [];
-  // Le tracé d'UNE branche dans les tampons partagés. Extrait pour maîtriser
-  // l'ORDRE d'écriture : dans un seul LineSegments, écrire en dernier, c'est
-  // tracer par-dessus (voir les deux passes plus bas).
+  const sink = _pathSink;
+  clearSink(sink);
+  if (!state.paths.length) { pathLines.solid.visible = pathLines.dashed.visible = false; return; }
+  // Le tracé d'UNE branche dans le puits partagé. Extrait pour maîtriser l'ORDRE
+  // d'écriture : dans un même LineSegments, écrire en dernier c'est tracer
+  // par-dessus (voir les deux passes plus bas).
   const pushBranch = (ti, i) => {
     const T = state.paths[ti];
     const ids = T && T.segments[i];
@@ -5430,45 +6023,39 @@ function updatePathLine() {
     // C'est la COULEUR qui hiérarchise — `linewidth` n'a aucun effet en WebGL,
     // toutes les lignes font un pixel quoi qu'on demande.
     if (activeBranch && !isActiveBranch(ti, i)) _branchCol.multiplyScalar(0.28);
-    for (let k = 0; k < ids.length - 1; k++) {
-      const ga = nodeById.get(ids[k]).__group, gb = nodeById.get(ids[k + 1]).__group;
-      // Un chemin surligne des ARÊTES : il doit suivre le trajet de l'arête,
-      // coudes compris. Tracé en corde par-dessus un circuit, il désignait un
-      // lien en passant par où ce lien ne passe pas — le surlignage montrait
-      // autre chose que ce qu'il surligne.
-      const ed = edgeBetween(ids[k], ids[k + 1]);
-      const r = ed ? routeOf(ed.e) : null;
-      // La route est écrite de `source` vers `target` : parcourue à l'envers,
-      // elle se lit à l'envers (voir edgeBetween.flip).
-      const A = ed && ed.flip ? gb : ga, B = ed && ed.flip ? ga : gb;
-      for (let s = 0; s < ROUTE_SEGS; s++) {
-        const k0 = ed && ed.flip ? ROUTE_SEGS - s : s;
-        const k1 = ed && ed.flip ? ROUTE_SEGS - s - 1 : s + 1;
-        // Des NOMBRES, pas des Vector3 : cette fonction tourne à chaque image
-        // (voir animate), et un chemin de dix nœuds en aurait alloué quatre-
-        // vingt-dix par image — exactement le coût que ce fichier a mesuré et
-        // retiré ailleurs.
-        routePointAt(A.position, B.position, r, k0, _pathPt);
-        pts.push(_pathPt.x, _pathPt.y, _pathPt.z);
-        routePointAt(A.position, B.position, r, k1, _pathPt);
-        pts.push(_pathPt.x, _pathPt.y, _pathPt.z);
-        cols.push(
-          _branchCol.r * branchVisibility, _branchCol.g * branchVisibility, _branchCol.b * branchVisibility,
-          _branchCol.r * branchVisibility, _branchCol.g * branchVisibility, _branchCol.b * branchVisibility,
-        );
-      }
-    }
+    pushRoutedSegments(ids, _branchCol.r * branchVisibility, _branchCol.g * branchVisibility, _branchCol.b * branchVisibility, sink);
   };
   // Deux passes, parce que plusieurs branches se croisent : d'abord toutes les
   // NON courantes, puis la branche sélectionnée EN DERNIER. Là où deux chemins
-  // partagent un tronçon, c'est ainsi la couleur du chemin choisi dans le
-  // panneau qui reste visible, pas celle qui a été tracée en premier.
+  // de MÊME nature (deux pleins, deux tirets) partagent un tronçon, c'est ainsi
+  // la couleur du chemin choisi qui reste visible, pas celle tracée en premier.
+  // (Entre un plein et des tirets, les creux du pointillé laissent voir l'autre.)
   state.paths.forEach((T, ti) => T.segments.forEach((ids, i) => { if (!isActiveBranch(ti, i)) pushBranch(ti, i); }));
   if (activeBranch) pushBranch(activeBranch.treeIndex, activeBranch.segIndex);
-  if (!pts.length) { pathLine.visible = false; return; }
-  pathLine.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  pathLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-  pathLine.visible = true;
+  applyLineSink(pathLines, sink);
+}
+
+// La PRÉVISUALISATION du tracé, pendant qu'on trace : même géométrie routée que
+// les chemins posés (plein/tirets compris), dans la teinte qu'aurait la
+// PROCHAINE branche (branchColor(pathColorN), celle que le clic lui donnerait),
+// mais estompée — elle se lit comme « voici ce que je tracerais », pas comme un
+// chemin déjà là. `pathPreview` est posé par le survol (updateHover) ou par la
+// recherche du menu ; null le reste du temps.
+const previewLines = makePathLines(0.6);
+const _previewCol = new THREE.Color();
+const _previewSink = { sPts: [], sCols: [], dPts: [], dCols: [], dDist: [] };
+function updatePreviewLine() {
+  if (!pathOrigin || !pathPreview || pathPreview.length < 2) { previewLines.solid.visible = previewLines.dashed.visible = false; return; }
+  // Comme une branche posée : un tracé qui SORT du champ courant (sous-corpus
+  // lexical, ou composante d'un recentrage) ne se prévisualise pas. Ses nœuds
+  // hors champ n'ont ni position ni ROUTE valides ici — sans ce garde, ses
+  // tronçons se traçaient en corde (obliques) par-dessus la carte routée.
+  if (!branchInFocus(pathPreview)) { previewLines.solid.visible = previewLines.dashed.visible = false; return; }
+  const sink = _previewSink;
+  clearSink(sink);
+  _previewCol.set(branchColor(pathColorN));
+  pushRoutedSegments(pathPreview, _previewCol.r, _previewCol.g, _previewCol.b, sink);
+  applyLineSink(previewLines, sink);
 }
 
 // ============================================================ Camera flight
@@ -5931,11 +6518,11 @@ function egoRouteKey() {
 
 /**
  * Le routage vit dans un WORKER, et c'est un choix mesuré : à pleine
- * profondeur (395 nœuds, 465 arêtes) il prend ~4,6 s. Sur le fil d'affichage,
- * ce ne serait pas une lenteur mais un gel — plus de rotation, plus de survol,
- * plus de clic pendant cinq secondes. Ici la carte reste vivante en tracé
- * direct pour la toute première vue, puis réutilise ce circuit à toutes les
- * profondeurs du même recentrage.
+ * profondeur (la composante géante, quelques centaines de nœuds et d'arêtes)
+ * il prend plusieurs secondes. Sur le fil d'affichage, ce ne serait pas une
+ * lenteur mais un gel — plus de rotation, plus de survol, plus de clic pendant
+ * ce temps. Ici la carte reste vivante en tracé direct pour la toute première
+ * vue, puis réutilise ce circuit à toutes les profondeurs du même recentrage.
  *
  * Un seul worker est réutilisé. Changer de focal annule son éventuel calcul
  * précédent ; changer la profondeur ne le concerne plus du tout.
@@ -6773,7 +7360,13 @@ function commitSearch(skipFly = false) {
   renderSearchPanel();
   updateVisuals();
   syncUrl();
-  if (!skipFly) flyToGroup([...state.searchMatches].map(id => nodeById.get(id)).filter(Boolean));
+  // Sous un recentrage (mot ou post-it), une recherche ne REVIENT PAS à la vue
+  // d'ensemble : elle se lit dans le contexte courant, la caméra ne bouge pas.
+  // C'est ce recadrage global qui « ramenait à la vue générale » avant de
+  // repartir vers un autre mot ; sans recentrage actif, il garde tout son sens.
+  if (!skipFly && !state.lexicalFocus && !state.egoId) {
+    flyToGroup([...state.searchMatches].map(id => nodeById.get(id)).filter(Boolean));
+  }
 }
 
 /** Referme le mode recherche SANS toucher au volet ni à l'URL — à l'appelant
@@ -6845,11 +7438,14 @@ function renderSearchPanel() {
   const resNote = document.getElementById('sp-resonance-note');
   const resSummary = document.getElementById('sp-resonance-summary');
   const resonance = resonanceForQuery(q);
-  resWrap.hidden = !resonance || resonance.reason === 'single-term-required';
+  // Quand la résonance du mot cherché est DÉJÀ celle en cours, l'action ne mène
+  // nulle part (on y est) : on la masque plutôt que d'offrir un « recadrer »
+  // sans objet. Elle ne reparaît que pour un AUTRE mot, où elle bascule vraiment.
+  const alreadyActive = state.lexicalFocus?.focal === resonance?.focal;
+  resWrap.hidden = !resonance || resonance.reason === 'single-term-required' || alreadyActive;
   if (resonance && !resWrap.hidden) {
     resBtn.dataset.query = q;
-    const active = state.lexicalFocus?.focal === resonance.focal;
-    resBtn.textContent = active ? '◎ Résonance active · recadrer' : '◎ Recentrer sur ce mot';
+    resBtn.textContent = '◎ Recentrer sur ce mot';
     resBtn.setAttribute('aria-disabled', String(!resonance.ok));
     if (!resonance.ok) {
       resNote.textContent = resonance.reason === 'absent'
@@ -6864,9 +7460,18 @@ function renderSearchPanel() {
           : `${resonance.occurrenceCount} post‑its contiennent ce terme · champ lexical déployé dans le corpus`;
       const synonymSeeds = (resonance.seeds || []).filter(s => s.relationClass === 'synonym');
       const lexicalSeeds = (resonance.seeds || []).filter(s => s.relationClass === 'lexical');
-      const synonymInfo = synonymSeeds.length ? ` Synonymes / équivalents : ${synonymSeeds.slice(0,6).map(s => s.term).join(' · ')}${synonymSeeds.length > 6 ? '…' : ''}.` : '';
-      const lexicalInfo = lexicalSeeds.length ? ` Proximités lexicales : ${lexicalSeeds.slice(0,6).map(s => s.term).join(' · ')}${lexicalSeeds.length > 6 ? '…' : ''}.` : '';
-      resNote.textContent = rare + `. ${resonance.assignments.size} post‑its retenus : ${resonance.directCount || 0} exacts, ${resonance.synonymCount || 0} par synonymie/équivalence, ${resonance.lexicalCount || 0} par proximité lexicale, ${resonance.cooccurrenceCount || 0} par cooccurrence, ${resonance.extensionCount || 0} par prolongement contextuel ; ${resonance.excludedCount} hors zone.${synonymInfo}${lexicalInfo} En constellation, les mêmes territoires deviennent des lobes orbitaux : plus un post-it est éloigné du centre, plus son rattachement est indirect ; plus il est proche de l’axe de son lobe, plus il est intégré aux relations documentaires retenues. Les lignes restent exclusivement les relations du tableau.`;
+      const synTerms = synonymSeeds.slice(0,6).map(s => s.term).join(' · ') + (synonymSeeds.length > 6 ? '…' : '');
+      const lexTerms = lexicalSeeds.slice(0,6).map(s => s.term).join(' · ') + (lexicalSeeds.length > 6 ? '…' : '');
+      const synInfo = synonymSeeds.length ? ` Synonymes / équivalents : ${escHtml(synTerms)}.` : '';
+      const lexInfo = lexicalSeeds.length ? ` Proximités lexicales : ${escHtml(lexTerms)}.` : '';
+      const breakdown = `${resonance.assignments.size} post‑its retenus : ${resonance.directCount || 0} exacts, ${resonance.synonymCount || 0} par synonymie/équivalence, ${resonance.lexicalCount || 0} par proximité lexicale, ${resonance.cooccurrenceCount || 0} par cooccurrence, ${resonance.extensionCount || 0} par prolongement contextuel ; ${resonance.excludedCount} hors zone.`;
+      // Une phrase simple en tête ; le détail du comptage se déplie à la demande.
+      resNote.innerHTML =
+        `<p class="sp-res-lead">${escHtml(rare)}. <span class="sp-res-hint">Voici où le mot résonne dans le reste de la carte.</span></p>`
+        + `<details class="sp-res-more"><summary>Comment ces échos sont comptés</summary>`
+        + `<p>${breakdown}${synInfo}${lexInfo}</p>`
+        + `<p>En constellation, les mêmes territoires deviennent des lobes orbitaux : plus un post‑it est éloigné du centre, plus son rattachement est indirect ; plus il est proche de l’axe de son lobe, plus il est intégré aux relations documentaires retenues. Les lignes restent exclusivement les relations du tableau.</p>`
+        + `</details>`;
       resSummary.innerHTML = resonance.families.map(f =>
         `<div class="sp-res-family"><b>${escHtml(f.label)}</b>`
         + `<span class="n">${f.directSupport || 0} direct · ${f.synonymIds?.size || 0} synonym. · ${f.lexicalIds?.size || 0} proximité · ${f.cooccurrenceIds?.size || 0} coocc. · ${f.extensionIds?.size || 0} context. · affinité ${Math.round((f.affinity || 0) * 100)} %</span>`
@@ -7355,12 +7960,11 @@ function collapseLegend() { if (!state.legendPinned) { legendEl.classList.add('c
 if (canHover) {
   legendEl.addEventListener('mouseenter', openLegend);
   legendEl.addEventListener('mouseleave', collapseLegend);
-  // Le panneau des chemins, DÉPLIÉ, se colle à DROITE de la légende : y aller
-  // ne doit pas la replier sous le curseur (sinon le panneau glisse au moment
-  // où on l'atteint). Il fait alors partie de la même zone de survol. Replié,
-  // il est SOUS la légende — pas de couplage (il la pousserait vers lui).
-  pathPanel.addEventListener('mouseenter', () => { if (!pathPanel.classList.contains('folded')) openLegend(); });
-  pathPanel.addEventListener('mouseleave', collapseLegend);
+  // La légende ne s'ouvre QUE sous son propre survol. Le panneau des chemins est
+  // un menu à part : le survoler n'a plus AUCUN effet sur elle (avant, déplié à
+  // côté d'elle, il la faisait surgir — surprenant quand on travaille les chemins).
+  // Une légende ÉPINGLÉE reste ouverte d'elle-même ; une légende ouverte au survol
+  // se replie quand on la quitte, comme partout ailleurs.
 }
 legendEl.addEventListener('click', () => {
   if (legendEl.classList.contains('collapsed')) setLegendPinned(true);
@@ -8141,6 +8745,9 @@ function firstVisibleHit(hits) {
 
 function updateHover() {
   if (!hoverDirty) return;
+  // Curseur sur la liste de suggestions : elle pilote la prévisualisation, le survol
+  // de la carte se met en retrait (sans consommer hoverDirty, il reprend en sortant).
+  if (overPathSearch) return;
   hoverDirty = false;
   raycaster.setFromCamera(pointer, camera);
   const hit = firstVisibleHit(raycaster.intersectObjects(pickTargets, false));
@@ -8148,17 +8755,51 @@ function updateHover() {
     const obj = hit.object;
     if (hovered !== obj) {
       hovered = obj;
-      renderer.domElement.style.cursor = pathOrigin ? 'crosshair' : 'pointer';
       tooltip.style.display = 'block';
-      // Départ armé : l'infobulle DIT ce que le clic va faire de ce nœud.
       const hoverNode = meshToGroup.get(obj).userData.node;
-      const lexicalAssignment = state.lexicalFocus?.assignments.get(hoverNode.id);
-      const relationPrefix = lexicalAssignment ? `${lexicalAssignment.relationLabel || lexicalAssignment.relationClass} · ` : '';
-      tooltip.textContent = (pathOrigin ? '⇢ arrivée : ' : '') + relationPrefix + hoverNode.label;
+      if (pathOrigin) {
+        // Départ armé : on PRÉVISUALISE le chemin vers ce nœud (pathPreview, tracé
+        // par la boucle) et l'infobulle DIT si le clic peut le tracer — un nœud
+        // isolé ou d'une autre composante ne le peut pas.
+        if (hoverNode.id === pathOrigin.id) {
+          pathPreview = null;
+          renderer.domElement.style.cursor = 'crosshair';
+          tooltip.textContent = '⇢ départ : ' + hoverNode.label;
+        } else if (!(adjacency.get(hoverNode.id) || []).length) {
+          pathPreview = null;
+          renderer.domElement.style.cursor = 'not-allowed';
+          tooltip.textContent = '⇢ ' + hoverNode.label + ' — isolé : aucun chemin possible';
+        } else if (pathArmVia) {
+          // On arme un POINT DE PASSAGE : on prévisualise le chemin qui PASSERAIT
+          // par ce nœud (origine → … → nœud → … → arrivée).
+          const reach = !!shortestPath(pathOrigin.id, hoverNode.id);
+          const viaIds = reach ? previewViaPath(hoverNode.id) : null;
+          pathPreview = viaIds;
+          renderer.domElement.style.cursor = reach ? 'crosshair' : 'not-allowed';
+          tooltip.textContent = reach
+            ? (viaIds ? `⇢ passant par : ${hoverNode.label} · ${viaIds.length - 1} saut${viaIds.length > 2 ? 's' : ''}` : '⇢ ' + hoverNode.label + ' — déjà dans ce chemin')
+            : '⇢ ' + hoverNode.label + ' — aucun chemin possible (autre partie du réseau)';
+        } else {
+          const ids = shortestPath(pathOrigin.id, hoverNode.id);
+          pathPreview = ids; // null si aucune route : rien à prévisualiser
+          // Atteignable → on peut tracer (croix + préviz) ; d'une autre
+          // composante → refus, comme un isolé (on ne trace pas de « ∅ »).
+          renderer.domElement.style.cursor = ids ? 'crosshair' : 'not-allowed';
+          tooltip.textContent = ids
+            ? `⇢ arrivée : ${hoverNode.label} · ${ids.length - 1} saut${ids.length > 2 ? 's' : ''}`
+            : '⇢ ' + hoverNode.label + ' — aucun chemin possible (autre partie du réseau)';
+        }
+      } else {
+        renderer.domElement.style.cursor = 'pointer';
+        const lexicalAssignment = state.lexicalFocus?.assignments.get(hoverNode.id);
+        const relationPrefix = lexicalAssignment ? `${lexicalAssignment.relationLabel || lexicalAssignment.relationClass} · ` : '';
+        tooltip.textContent = relationPrefix + hoverNode.label;
+      }
     }
   } else if (hovered) {
     hovered = null;
-    renderer.domElement.style.cursor = 'default';
+    pathPreview = null; // plus rien sous le curseur : la prévisualisation s'efface
+    renderer.domElement.style.cursor = pathOrigin ? 'crosshair' : 'default';
     tooltip.style.display = 'none';
   }
 }
@@ -8270,6 +8911,7 @@ function animate() {
     if (performance.now() - intro.t0 >= introTotal() + (urlState ? 420 : 0)) endIntro();
   } else if (frameCount % 6 === 0) updateLabels();
   updatePathLine();
+  updatePreviewLine(); // la prévisualisation du tracé suit les mêmes positions vivantes
   // Les repères suivent leur nœud (métamorphose de disposition) et la caméra
   // (billboard) : deux positions et deux quaternions par frame, rien de plus.
   updateMarkers();
@@ -8333,8 +8975,18 @@ function encodeStateHash() {
   if (state.lexicalFocus) parts.push('lex=' + encodeURIComponent(state.lexicalFocus.query));
   else if (state.egoId) parts.push('ego=' + encodeURIComponent(state.egoId) + ':' + state.egoDepth);
   if (state.paths.length) {
+    // origine:branche,branche;… où une branche = étape>…>arrivée ~ couleur ! variante
+    //   - les ÉTAPES (points de passage « passant par… ») précèdent l'arrivée,
+    //     séparées par « > » ; sans étape, juste l'arrivée.
+    //   - « ~c » : l'indice de couleur, pour que les teintes REPARAISSENT à
+    //     l'identique chez qui reçoit le lien.
+    //   - « !v » : la variante choisie (parmi les tracés de même longueur), omise
+    //     si 0. Les identifiants Miro sont numériques : « > ~ ! » ne s'y trouvent
+    //     jamais, les séparateurs sont donc sans ambiguïté.
     parts.push('path=' + state.paths.map(T =>
-      encodeURIComponent(T.originId) + ':' + T.targetIds.map(encodeURIComponent).join(',')
+      encodeURIComponent(T.originId) + ':' + T.segStops.map((stops, i) =>
+        stops.map(encodeURIComponent).join('>') + '~' + T.segColorN[i] + (T.segVariant[i] ? '!' + T.segVariant[i] : '')
+      ).join(',')
     ).join(';'));
   }
   return parts.join('&');
@@ -8423,18 +9075,27 @@ function applyUrlState(u, onDone) {
   }
   const finish = () => {
     if (u.path) {
-      u.path.forEach(({ origin, targets }) => {
+      u.path.forEach(({ origin, branches }) => {
         const originNode = nodeById.get(origin);
         if (!originNode) { console.warn(`[état d'URL] chemin ignoré : origine « ${origin} » introuvable.`); return; }
         let T = null;
-        targets.forEach(tid => {
-          const targetNode = nodeById.get(tid);
-          if (!targetNode) { console.warn(`[état d'URL] arrivée « ${tid} » introuvable, ignorée.`); return; }
-          armPath(originNode, T);
-          addPathTarget(targetNode, true); // aucun vol intermédiaire pendant le rejeu
-          T = state.paths[state.paths.length - 1];
+        branches.forEach(({ stops, c, v }) => {
+          // Toutes les étapes (points de passage + arrivée) doivent exister ;
+          // sinon la branche est ignorée (graphe régénéré depuis le partage).
+          if (!stops.length || stops.some(id => !nodeById.get(id))) {
+            console.warn(`[état d'URL] branche ignorée : une étape est introuvable.`); return;
+          }
+          if (!T) { T = newTree(originNode.id); state.paths.push(T); }
+          const forced = c != null && c >= 0;
+          const k = forced ? c : pathColorN;
+          if (addBranch(T, stops, k, v || 0) >= 0) pathColorN = Math.max(pathColorN + (forced ? 0 : 1), k + 1);
         });
+        // Un arbre sans aucune branche valide ne sert à rien.
+        if (T && !T.targetIds.length) { const i = state.paths.indexOf(T); if (i >= 0) state.paths.splice(i, 1); }
       });
+      recomputePathSets();
+      renderPathPanel();
+      updateVisuals();
     }
     const settled = () => {
       syncUrl();   // forme canonique : les identifiants introuvables retombent

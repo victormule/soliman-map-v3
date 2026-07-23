@@ -70,12 +70,26 @@ export function parseStateHash(hash, onWarning = message => console.warn(message
         if (i <= 0) return;
         const origin = safeDecode(seg.slice(0, i), 'path.origin', warn);
         if (origin === null) return;
-        const targets = [];
+        const branches = [];
         seg.slice(i + 1).split(',').filter(Boolean).forEach(part => {
-          const decoded = safeDecode(part, 'path.target', warn);
-          if (decoded !== null) targets.push(decoded);
+          // Une branche = étape>…>arrivée ~ couleur ! variante. « ~c » et « !v »
+          // sont optionnels (anciens liens sans eux : c = null, v = 0, couleur
+          // réattribuée dans l'ordre du rejeu). On détache d'abord « !v » puis
+          // « ~c » (seulement si ce qui suit est un entier), le reste étant la
+          // suite d'étapes séparées par « > ».
+          let body = part, c = null, vNum = 0;
+          const bang = body.lastIndexOf('!');
+          if (bang > 0 && /^\d+$/.test(body.slice(bang + 1))) { vNum = parseInt(body.slice(bang + 1), 10); body = body.slice(0, bang); }
+          const tilde = body.lastIndexOf('~');
+          if (tilde > 0 && /^\d+$/.test(body.slice(tilde + 1))) { c = parseInt(body.slice(tilde + 1), 10); body = body.slice(0, tilde); }
+          const stops = [];
+          body.split('>').filter(Boolean).forEach(sp => {
+            const d = safeDecode(sp, 'path.stop', warn);
+            if (d !== null) stops.push(d);
+          });
+          if (stops.length) branches.push({ stops, c, v: vNum });
         });
-        if (targets.length) paths.push({ origin, targets });
+        if (branches.length) paths.push({ origin, branches });
       });
       if (paths.length) out.path = paths;
     }
