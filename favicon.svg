@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Constellation">
+  <rect width="32" height="32" rx="7" fill="#0a0908"/>
+  <!-- Les liens, en filet doré discret -->
+  <g stroke="#c9a24b" stroke-width="1" stroke-opacity="0.5" fill="none" stroke-linecap="round">
+    <path d="M9 21 L16 12"/>
+    <path d="M16 12 L23 18"/>
+    <path d="M9 21 L23 18"/>
+    <path d="M16 12 L14 6"/>
+  </g>
+  <!-- Les nœuds ; le focal, plus vif et plus grand -->
+  <g fill="#c9a24b">
+    <circle cx="9" cy="21" r="2"/>
+    <circle cx="23" cy="18" r="1.8"/>
+    <circle cx="14" cy="6" r="1.5" fill-opacity="0.75"/>
+    <circle cx="16" cy="12" r="3" fill="#ece5d6"/>
+  </g>
+</svg>

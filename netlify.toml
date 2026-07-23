@@ -1,0 +1,77 @@
+# Configuration Netlify — soliman-map.netlify.app
+#
+# Le site est STATIQUE : graph.json est déjà construit et versionné, export_miro.json
+# (la source) reste local et gitignoré. Netlify n'a donc rien à compiler ; il publie
+# la racine telle quelle. La compression gzip/brotli est automatique côté Netlify.
+#
+# Deux choses se règlent ici : les EN-TÊTES DE SÉCURITÉ (dont la CSP) et le CACHE.
+# Tout cela ne prend effet qu'au prochain déploiement — rien ne touche la prod avant.
+
+[build]
+  publish = "."
+  # Aucune commande : le build (node build-graph.mjs) se fait en local, à la main,
+  # car il exige export_miro.json qui n'est pas dans le dépôt.
+
+# ---------------------------------------------------------------------------
+# En-têtes de sécurité, appliqués à toutes les réponses.
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # CSP calibrée sur ce que la page charge RÉELLEMENT, et rien de plus :
+    #   script-src 'self' 'unsafe-inline' : l'application est un <script type="module">
+    #     inline (choix d'architecture assumé) + les modules ES locaux. Pas de
+    #     'unsafe-eval' : ni le code ni Three.js n'utilisent eval/new Function.
+    #   style-src : le <style> inline, les attributs style="…", et la feuille
+    #     Google Fonts (fonts.googleapis.com).
+    #   font-src : les fichiers de police (fonts.gstatic.com).
+    #   img-src 'self' data: : les textures et images viennent de assets/ ; data:
+    #     couvre d'éventuelles images encodées.
+    #   connect-src 'self' : le seul fetch est ./graph.json.
+    #   worker-src 'self' : le worker de routage (circuit-worker.mjs).
+    # ⚠ EN RODAGE (premier déploiement) : la clé porte le suffixe "-Report-Only".
+    # La CSP est alors SIGNALÉE dans la console du navigateur mais NE BLOQUE rien —
+    # zéro risque de casser la prod. Marche à suivre : déployer, ouvrir la console,
+    # vérifier qu'aucune violation n'apparaît sur un parcours normal, PUIS retirer
+    # le suffixe "-Report-Only" ci-dessous (→ "Content-Security-Policy") et
+    # redéployer pour la rendre effective.
+    Content-Security-Policy-Report-Only = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; upgrade-insecure-requests"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# ---------------------------------------------------------------------------
+# Cache. Aucun nom de fichier n'est empreinté (hashé) : la durée est donc choisie
+# selon la fréquence de changement réelle de chaque famille.
+# ---------------------------------------------------------------------------
+
+# Point d'entrée : toujours revalidé, pour qu'une mise à jour paraisse aussitôt.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Images : les identifiants Miro sont stables (une image ne change jamais de nom).
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Bibliothèques : changent rarement, mais sans empreinte — revalidation hebdomadaire.
+[[headers]]
+  for = "/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# Code applicatif et données : évoluent à chaque publication.
+[[headers]]
+  for = "/*.mjs"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/graph.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

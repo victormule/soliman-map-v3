@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Le Markdown autorise deux espaces en fin de ligne (retour à la ligne dur).
+[*.md]
+trim_trailing_whitespace = false
+
+# Données générées : ne pas imposer de mise en forme d'éditeur.
+[{graph.json,export_miro.json}]
+insert_final_newline = false

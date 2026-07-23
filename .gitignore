@@ -1,0 +1,18 @@
+# Outils de travail locaux
+.agents/
+.claude/
+.chrome-test/
+.tmp*
+.tool-check
+
+# Source Miro brute : non requise par le site publié
+export_miro.json
+
+# Archives, caches et sorties de tests
+*.zip
+node_modules/
+coverage/
+
+# Fichiers système
+.DS_Store
+Thumbs.db

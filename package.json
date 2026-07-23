@@ -1,0 +1,21 @@
+{
+  "name": "soliman-map",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Cartographie interactive d'une carte mentale sur les restes humains en contexte muséal, à partir du cas de Soliman al-Halabi.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://soliman-map.netlify.app/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/victormule/soliman-map-v3.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node build-graph.mjs",
+    "serve": "npx --yes serve .",
+    "start": "npx --yes serve ."
+  }
+}
