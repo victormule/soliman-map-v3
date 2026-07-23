@@ -3315,7 +3315,7 @@ function pathBranchVisibility(ids) {
   return from + (to - from) * layoutVisualMorph.t;
 }
 
-function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false) {
+function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint = null) {
   // On retient l'ARÊTE, pas son routage : celui-ci change avec ce qu'on regarde
   // (cartographie routée au build, recentrage routé à la volée, Orbite 3D), et le figer ici
   // aurait laissé le recentrage dessiner le circuit de la cartographie.
@@ -3400,8 +3400,13 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false) {
       }
       // ── Les sommets deviennent des SEGMENTS : LineSegments consomme les
       //    sommets deux par deux, il faut donc doubler les points intérieurs.
-      _ca.set(colorFor(a.userData.node));
-      _cb.set(colorFor(b.userData.node));
+      // Une arête TEINTÉE (les fils « même texte ») ignore la couleur des nœuds :
+      // c'est un AUTRE langage de trait — l'écho d'un propos répété, pas un lien
+      // tracé. Une teinte froide et uniforme le pose EN RETRAIT, derrière les
+      // connecteurs colorés, au lieu de rivaliser avec eux. (Voir l'appel plus
+      // bas : c'est ce qui débrouille l'entrelacs horizontal de la carte.)
+      if (tint) { _ca.copy(tint); _cb.copy(tint); }
+      else { _ca.set(colorFor(a.userData.node)); _cb.set(colorFor(b.userData.node)); }
       let run = 0;
       for (let sgi = 0; sgi < ROUTE_SEGS; sgi++) {
         for (let end = 0; end < 2; end++) {
@@ -3556,7 +3561,12 @@ function makeArrowRenderer(baseOpacity) {
 const connectorSolid = makeEdgeRenderer('connector', 0.30, true, false);
 const connectorDashed = makeEdgeRenderer('connector', 0.30, true, true);
 const arrowHeads = makeArrowRenderer(0.30);
-const conceptEdges = makeEdgeRenderer('concept', 0.16, true);
+// Les fils « même texte » : teinte FROIDE uniforme (bleu acier) + opacité basse.
+// Ils forment une nappe d'écho en arrière-plan, distincte des connecteurs
+// colorés du premier plan — c'est ce qui rend l'entrelacs horizontal lisible
+// sans rien cacher (ils restent là, mais à leur place : derrière).
+const CONCEPT_TINT = new THREE.Color(0x5a7da0);
+const conceptEdges = makeEdgeRenderer('concept', 0.13, true, false, CONCEPT_TINT);
 
 /**
  * Un connecteur se dessine désormais en TROIS objets (trait plein, trait

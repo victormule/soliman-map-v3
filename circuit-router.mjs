@@ -50,6 +50,10 @@ export const ROUTE = {
                     // le trait partagé se lit plus lumineux, comme un tronc commun.
   wNode: 3.0,       // ce que coûte un nœud traversé — le plus lourd : un trait
                     // qui passe sous un post-it laisse croire à un lien absent
+  conceptNode: 0.25,// …mais un fil « même texte » (arrière-plan froid et pâle) qui
+                    // frôle un post-it ne trompe personne : on lui rend l'évitement
+                    // quasi gratuit pour qu'il aille DROIT au lieu de contourner en
+                    // rectangles emboîtés (voir bestFor). 0 = traverse librement.
   wLen: 0.004,      // ce que coûte la longueur, à départager seulement
   space: 1.6,       // ÉCARTEMENT visé entre deux traits PARALLÈLES : en deçà, ils
                     // se lisent comme un couloir confus (l'allure « circuit imprimé »
@@ -61,15 +65,22 @@ export const ROUTE = {
                     // qu'elle se longe sur 3 ou 300 unités) laissait intactes.
                     // 0,05 balayé avec la grille de pose : au-delà, on recroise
                     // pour s'écarter ; en deçà, le peigne revient.
-  wBend: 0.25,      // ce que coûte un COUDE : à service égal, un L bat un Z — moins
-                    // d'angles, l'œil suit. (Un vrai coude : deux segments non nuls
-                    // qui tournent, jamais les sommets fantômes d'un tracé rectiligne.)
-  stub: 5,          // longueur d'approche visée AVANT le premier coude, côté nœud.
-                    // C'est la règle du « pad escape » des circuits imprimés — et ce
-                    // qui garantit qu'une pointe de flèche (≈2,4 u, biseau déduit)
-                    // repose sur un segment droit, orthogonal, aligné sur son rail.
-  wStub: 0.9,       // ce que coûte une approche trop courte, en proportion du manque
-                    // (une approche de 4,5 u sur 5 coûte presque rien ; 0,5 u, presque tout).
+  wBend: 0.12,      // ce que coûte un COUDE, FAIBLE : à placement égal, moins
+                    // d'angles se suit mieux — mais un coude bien placé (au milieu)
+                    // vaut toujours mieux qu'un départ tordu, d'où le poids léger.
+  stub: 5,          // distance visée entre un coude et le NŒUD le plus proche (le
+                    // long du trajet) : la règle du « pad escape » des circuits
+                    // imprimés. Garantit aussi qu'une pointe de flèche (≈2,4 u,
+                    // biseau déduit) repose sur un segment droit aligné sur son rail.
+  wStub: 3.0,       // ce que coûte un coude trop près d'un nœud, QUADRATIQUE : mord
+                    // fort tout contre le post-it (le « coude collé » qu'on chasse),
+                    // presque rien à `stub`. Au-dessus de wBend, pour qu'un Z médian
+                    // batte un L qui tourne sur le nœud quand deux post-its s'alignent.
+  wBack: 2.0,       // ce que coûte un départ/arrivée À L'ENVERS (le segment s'éloigne
+                    // d'abord de l'autre bout). Cher : l'échappée rebours est le
+                    // dernier recours, quand elle SEULE évite un croisement ou un nœud.
+                    // Mesuré : départs à l'envers 35 → 14, au prix de +3 % de
+                    // croisements — l'utilisateur a nommé les départs chelou en 1er.
   pitch: 2.2,       // pas de la grille de pose des barres de Z (0 = libre) —
                     // voir buildCandidates : c'est lui qui régularise les nappes.
                     // 2,2 balayé contre 1,6/1,8/2,6 : le meilleur trio
@@ -238,36 +249,48 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
    *   candidats meurent au premier segment. Le recensement, lui, appelle sans
    *   limite — il ne cherche pas, il compte.
    */
-  function costOf(P, np, srcIdx, dstIdx, owner, limit = Infinity) {
+  function costOf(P, np, srcIdx, dstIdx, owner, limit = Infinity, wNode = O.wNode) {
     let cross = 0, over = 0, hits = 0, hug = 0, len = 0;
     // ── Coûts de FORME, lus sur la polyligne seule ─────────────────────────
-    // Les coudes : un vrai changement de direction entre deux segments non
-    // nuls (un candidat dégénéré — nœuds alignés — a des sommets fantômes qui
-    // ne tournent pas, et ne doit rien payer).
-    // L'approche : la longueur droite entre chaque extrémité et son premier
-    // coude. En deçà de `stub`, pénalité proportionnelle au manque — c'est la
-    // règle d'échappée de pastille des circuits imprimés, et ce qui donne aux
-    // pointes de flèche un rail droit où se poser.
+    // Ce que l'œil lit comme un « départ chelou » n'est PAS le nombre de coudes :
+    // c'est un coude COLLÉ AU NŒUD (le trait part et tourne aussitôt) et un
+    // départ à l'ENVERS (le premier segment s'éloigne d'abord de la cible).
+    //   · un coude est facturé selon sa distance au nœud le plus proche LE LONG
+    //     du trajet : gratuit au milieu, cher tout contre une extrémité. Un
+    //     coude au milieu vaut donc mieux qu'un L qui tourne sur le post-it —
+    //     exactement l'inverse de « minimiser les coudes », qui rabattait le
+    //     coude sur le nœud dès que deux post-its étaient presque alignés.
+    //   · wBend reste, faible : à placement égal, moins d'angles se suit mieux.
+    //   · le départ/arrivée à l'envers est puni à part (échappée « chelou »).
     let shape = 0;
     {
-      let firstBend = -1, lastBend = -1;
+      let tot = 0;
+      for (let i = 0; i < np - 1; i++) tot += Math.hypot(P[i*2+2]-P[i*2], P[i*2+3]-P[i*2+1]);
+      // Un coude ne peut pas être « au milieu » d'un trait plus court que lui :
+      // le seuil de proximité suit donc la longueur (au plus `stub`, au plus 40 %).
+      const near = Math.min(O.stub, tot * 0.4);
+      let acc = 0;
       for (let i = 1; i < np - 1; i++) {
+        acc += Math.hypot(P[i*2]-P[i*2-2], P[i*2+1]-P[i*2-1]);
         const d1x = P[i*2] - P[i*2-2], d1y = P[i*2+1] - P[i*2-1];
         const d2x = P[i*2+2] - P[i*2], d2y = P[i*2+3] - P[i*2+1];
         if ((d1x*d1x + d1y*d1y) < 1e-12 || (d2x*d2x + d2y*d2y) < 1e-12) continue;
         if (d1x*d2x + d1y*d2y < 1e-9) {
           shape += O.wBend;
-          if (firstBend < 0) firstBend = i;
-          lastBend = i;
+          const gap = acc < tot - acc ? acc : tot - acc;   // au nœud le plus proche
+          if (O.wStub && near > 1e-6 && gap < near) { const d = 1 - gap / near; shape += O.wStub * d * d; }
         }
       }
-      if (O.wStub && firstBend >= 0) {
-        let f = 0;
-        for (let i = 0; i < firstBend; i++) f += Math.hypot(P[i*2+2] - P[i*2], P[i*2+3] - P[i*2+1]);
-        let l = 0;
-        for (let i = lastBend; i < np - 1; i++) l += Math.hypot(P[i*2+2] - P[i*2], P[i*2+3] - P[i*2+1]);
-        if (f < O.stub) shape += O.wStub * (1 - f / O.stub);
-        if (l < O.stub) shape += O.wStub * (1 - l / O.stub);
+      // Départ / arrivée à l'ENVERS : le premier (resp. dernier) segment a une
+      // composante qui s'éloigne de l'autre bout. Puni au prorata du rebours.
+      if (O.wBack) {
+        const cdx = P[(np-1)*2] - P[0], cdy = P[(np-1)*2+1] - P[1], cl = Math.hypot(cdx, cdy);
+        if (cl > 1e-6) {
+          const fx = P[2]-P[0], fy = P[3]-P[1], fl = Math.hypot(fx, fy);
+          if (fl > 1e-6) { const c = (fx*cdx + fy*cdy) / (cl*fl); if (c < 0) shape += O.wBack * (-c); }
+          const lx = P[(np-1)*2]-P[(np-2)*2], ly = P[(np-1)*2+1]-P[(np-2)*2+1], ll = Math.hypot(lx, ly);
+          if (ll > 1e-6) { const c = (lx*cdx + ly*cdy) / (cl*ll); if (c < 0) shape += O.wBack * (-c); }
+        }
       }
     }
     if (shape >= limit) return Infinity;
@@ -330,10 +353,10 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
       }
       // Élagage, une fois par segment : assez tôt pour trancher, assez rare
       // pour ne rien coûter.
-      if (shape + cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen >= limit) return Infinity;
+      if (shape + cross * O.wCross + over * O.wOverlap + hits * wNode + hug * O.wSpace + len * O.wLen >= limit) return Infinity;
     }
     outCross = cross; outOver = over; outHits = hits;
-    return shape + cross * O.wCross + over * O.wOverlap + hits * O.wNode + hug * O.wSpace + len * O.wLen;
+    return shape + cross * O.wCross + over * O.wOverlap + hits * wNode + hug * O.wSpace + len * O.wLen;
   }
 
   // ── Les chemins possibles : deux L (un coude), deux Z par partage ─────────
@@ -400,10 +423,18 @@ export function routeCircuit(nodes, edges, opts = {}, census = false) {
   function bestFor(ji) {
     const j = jobs[ji];
     buildCandidates(nx[j.a], ny[j.a], nx[j.b], ny[j.b]);
+    // Un fil « même texte » (rang > 0) est une nappe d'ARRIÈRE-PLAN, dessinée
+    // froide et pâle : un trait qui frôle un post-it y est INVISIBLE, là où le
+    // même frôlement sur un connecteur coloré tromperait l'œil. On lui rend
+    // donc l'évitement des nœuds bien moins cher — il va DROIT (compact) au lieu
+    // de contourner en grands rectangles emboîtés. Le connecteur, lui, garde
+    // l'évitement strict. C'est la même règle qui distingue les deux couches à
+    // l'écran, portée dans le routage.
+    const wNode = j.rank > 0 ? O.wNode * O.conceptNode : O.wNode;
     let best = -1, bs = Infinity;
     for (let c = 0; c < CAND; c++) {
       const sub = candBuf.subarray(c * 8, c * 8 + candLen[c] * 2);
-      const sc = costOf(sub, candLen[c], j.a, j.b, ji, bs);
+      const sc = costOf(sub, candLen[c], j.a, j.b, ji, bs, wNode);
       if (sc < bs - 1e-9) { bs = sc; best = c; }
     }
     return best;
