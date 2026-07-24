@@ -2702,7 +2702,24 @@ function updateFog() {
   scene.fog.far = near + (2 * radius) / Math.max(FOG_AT_FAR, 0.01);
 }
 
-const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 3000);
+/**
+ * L'ANGLE DE CHAMP dépend de la disposition. À plat (cartographie, recentrage
+ * 2D), un angle ÉTROIT — un « téléobjectif » — aplatit la perspective : les
+ * pistes du circuit restent parallèles jusqu'aux bords, la carte se lit comme
+ * un document, pas comme une photo prise de près. En volume (constellation),
+ * l'angle large REND la profondeur, qui EST le sujet.
+ *
+ * L'angle n'est pas figé : il glisse vers `camFovTarget` dans la boucle, si
+ * bien que la bascule 2D↔3D élargit ou resserre le champ EN MÊME TEMPS que la
+ * caméra plonge — le changement se fond dans le zoom d'arrivée, jamais un saut.
+ * Un champ étroit voit moins à distance égale : toutes les distances à plat
+ * sont donc multipliées par `fovDistK()` pour garder le MÊME cadrage.
+ */
+const REF_FOV = 52, FLAT_FOV = 28;
+let camFovTarget = FLAT_FOV;   // l'ouverture démarre à plat (disposition par défaut)
+const fovDistK = () =>
+  Math.tan(THREE.MathUtils.degToRad(REF_FOV) / 2) / Math.tan(THREE.MathUtils.degToRad(camFovTarget) / 2);
+const camera = new THREE.PerspectiveCamera(FLAT_FOV, window.innerWidth / window.innerHeight, 0.1, 3000);
 camera.position.set(0, 40, 260);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -2724,7 +2741,10 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.07;
 controls.minDistance = 8;
-controls.maxDistance = 600;
+// Plus grande qu'avant : à plat, le champ étroit repousse la caméra (× fovDistK,
+// ≈ 2), l'ensemble de la carte se cadre donc de plus loin. La marge de dézoom
+// est conservée.
+controls.maxDistance = 1200;
 controls.rotateSpeed = 0.55;
 controls.zoomSpeed = 0.8;
 controls.target.set(0, 5, 0);
@@ -6163,7 +6183,9 @@ function approachDir() {
 }
 function flyToNode(n, onDone) {
   const pos = n.__group.position.clone();
-  const dist = n.kind === 'section' ? 75 : 24;
+  // × fovDistK : à plat, le téléobjectif exige de reculer d'autant pour garder
+  // au nœud sa taille apparente ; en volume, fovDistK vaut 1 (rien ne change).
+  const dist = (n.kind === 'section' ? 75 : 24) * fovDistK();
   flyTo(pos.clone().add(approachDir().multiplyScalar(dist)), pos, 950, onDone);
 }
 
@@ -6257,7 +6279,10 @@ function currentBounds() {
  */
 function distanceToFit(box, margin = 1.12) {
   const size = box.getSize(new THREE.Vector3());
-  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  // Le champ VISÉ, pas l'instantané : pendant qu'il glisse (bascule 2D↔3D), le
+  // cadrage doit viser l'ouverture d'arrivée, sinon l'arrivée se recadre toute
+  // seule à la fin de l'animation.
+  const vFov = THREE.MathUtils.degToRad(camFovTarget);
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
   // La profondeur de la boîte pousse la caméra d'autant : on cadre sa face avant.
   const depth = size.z * 0.5;
@@ -6283,6 +6308,9 @@ function applyModeCameraLock() {
   const flat = state.layoutMode === 'miro';
   controls.enableRotate = !flat;
   if (flat) controls.autoRotate = false;
+  // L'ouverture visée suit la disposition : téléobjectif à plat, large en volume.
+  // La boucle l'y amène en glissant — voir la déclaration de camFovTarget.
+  camFovTarget = flat ? FLAT_FOV : REF_FOV;
   // Le bouton ⟳ suit la disposition (sourd à plat). Drapeau `var` : cette
   // fonction s'exécute au montage, avant que le bloc « idle auto-rotate » ait
   // évalué ses const — un test direct tomberait dans leur zone morte.
@@ -9125,6 +9153,15 @@ function updateLabels() {
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
+  // L'ouverture glisse vers sa cible (téléobjectif à plat ↔ large en volume) :
+  // le changement se fond ainsi dans le zoom d'arrivée d'une bascule, sans saut.
+  if (Math.abs(camera.fov - camFovTarget) > 0.02) {
+    camera.fov += (camFovTarget - camera.fov) * 0.1;
+    if (Math.abs(camera.fov - camFovTarget) <= 0.02) camera.fov = camFovTarget;
+    camera.updateProjectionMatrix();
+    invalidateBounds();
+    hoverDirty = true;
+  }
   updateHover();
   updateFog(); // le voile s'accroche au nuage, qui bouge avec la caméra
 
