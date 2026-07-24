@@ -6400,17 +6400,28 @@ function captureView() {
 }
 
 // La capture se branche sur la FIN du geste, jamais sur chaque image : écrire
-// dans l'URL à 60 Hz appellerait replaceState soixante fois par seconde. On
-// attend donc que le geste ET l'amorti se taisent (débounce sur 'change').
+// dans l'URL à 60 Hz appellerait replaceState soixante fois par seconde. Un
+// COURT délai laisse l'amorti du déplacement se taire sans se faire attendre —
+// le zoom, lui, est instantané (dolly non amorti), donc cité quasi aussitôt le
+// geste fini. On arme sur 'end' ET sur 'change' : même si l'amorti ne produit
+// plus d'image, le geste reste cité, et vite.
+const VIEW_SETTLE_MS = 80;
+function scheduleViewCapture() {
+  clearTimeout(viewCaptureTimer);
+  viewCaptureTimer = setTimeout(() => { awaitingSettle = false; captureView(); }, VIEW_SETTLE_MS);
+}
 controls.addEventListener('start', () => { awaitingSettle = false; clearTimeout(viewCaptureTimer); });
-controls.addEventListener('end', () => { awaitingSettle = true; });
+controls.addEventListener('end', () => {
+  if (state.layoutMode !== 'miro') return;   // hors carte à plat, rien à citer
+  awaitingSettle = true;
+  scheduleViewCapture();
+});
 controls.addEventListener('change', () => {
   // Les 'change' des vols programmés n'ont pas de 'end' préalable : ignorés.
-  // Hors carte à plat, rien à citer (l'orbite auto en volume battrait le
-  // débounce pour rien).
+  // Tant que le déplacement glisse encore, on repousse — pour citer où il
+  // s'arrête vraiment, jamais une position intermédiaire.
   if (!awaitingSettle || state.layoutMode !== 'miro') return;
-  clearTimeout(viewCaptureTimer);
-  viewCaptureTimer = setTimeout(() => { awaitingSettle = false; captureView(); }, 260);
+  scheduleViewCapture();
 });
 
 function flyTo(targetPos, lookAt, duration = 900, onDone, layoutFlight = false) {
