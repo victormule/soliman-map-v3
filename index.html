@@ -112,7 +112,10 @@
   body.booting #top-right,
   body.booting #legend,
   body.booting #hint{ opacity:0; }
-  body.booting #title-block, body.booting #top-right{ transform: translateY(-10px); }
+  /* Le titre est centré en absolu (translateX(-50%)) : son entrée doit GARDER
+     ce -50%, sinon il apparaît décalé à droite puis saute au centre. */
+  body.booting #title-block{ transform: translate(-50%, -10px); }
+  body.booting #top-right{ transform: translateY(-10px); }
   body.booting #legend{ transform: translateX(-14px); }
   #title-block, #top-right, #legend, #hint{ transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.3,1); }
   /* La cascade : la carte d'abord, les outils ensuite — on regarde avant
@@ -128,14 +131,35 @@
     #title-block, #top-right, #legend, #hint{ transition-duration: .2s !important; transition-delay: 0s !important; }
   }
 
-  /* ---------- header ---------- */
-  #header{ position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:flex-start; padding: 20px 24px; pointer-events:none; z-index: 40; }
-  #title-block{ pointer-events:auto; max-width: 420px; }
-  #title-block h1{ font-family: var(--serif); font-weight: 500; font-size: 20px; letter-spacing: 0.01em; text-shadow: 0 2px 18px rgba(0,0,0,0.6); }
-  #title-block p{ font-size: 12px; color: var(--ink-dim); margin-top: 4px; line-height:1.5; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
-  #title-block .tag{ display:inline-block; margin-top:8px; font-family: var(--mono); font-size: 10px; letter-spacing:0.06em; color: var(--gold); border:1px solid var(--border-strong); padding: 3px 8px; border-radius: 20px; background: rgba(10,9,8,0.55); cursor:pointer; }
+  /* ---------- header ----------
+   *
+   * Le TITRE vise le centre du bandeau (« au milieu en haut, quand il le
+   * peut ») : titre, sous-titre « Cartographie mentale » et la languette
+   * « à propos » empilés et centrés. Les contrôles de droite restent ancrés
+   * au bord. Libérer le coin haut-gauche laisse la légende et les chemins
+   * remonter et gagner en hauteur. Sur fenêtre étroite, une media query
+   * ramène le titre à gauche pour qu'il ne morde ni la recherche ni la
+   * légende (voir @media max-width). */
+  #header{ position:fixed; top:0; left:0; right:0; padding: 18px 24px; pointer-events:none; z-index: 40; }
+  #title-block{ position:absolute; left:50%; top:16px; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    pointer-events:auto; max-width: min(56vw, 520px); }
+  #title-block h1{ font-family: var(--serif); font-weight: 500; font-size: 21px; letter-spacing: 0.015em; text-shadow: 0 2px 18px rgba(0,0,0,0.6); }
+  #title-block p{ font-size: 12px; color: var(--ink-dim); margin-top: 3px; line-height:1.5; letter-spacing:.03em; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
+  #title-block .tag{ display:inline-block; margin-top:7px; font-family: var(--mono); font-size: 10px; letter-spacing:0.06em; color: var(--gold); border:1px solid var(--border-strong); padding: 3px 8px; border-radius: 20px; background: rgba(10,9,8,0.55); cursor:pointer; }
   #title-block .tag:hover{ background: rgba(201,162,75,0.12); }
-  #top-right{ display:flex; gap:9px; align-items:flex-start; pointer-events:auto; }
+  #top-right{ position:absolute; right:24px; top:16px; display:flex; gap:9px; align-items:flex-start; pointer-events:auto; }
+  /* « Au milieu en haut, QUAND IL LE PEUT » : en deçà d'une fenêtre large, le
+     titre centré finirait par mordre la recherche (qui s'élargit au focus) ou
+     la légende. On le renvoie alors au coin haut-gauche, sa place d'origine, et
+     la légende redescend juste ce qu'il faut pour le dégager. Au-delà, il se
+     centre. */
+  @media (max-width: 1160px){
+    #title-block{ position:static; left:auto; top:auto; transform:none;
+      align-items:flex-start; text-align:left; max-width:min(58vw, 420px); }
+    body.booting #title-block{ transform: translateY(-10px); }
+    #legend{ top:120px; max-height: calc(100% - 152px); }
+  }
 
   #search-wrap{ position:relative; }
   #search{ width: 210px; background: var(--panel); border:1px solid var(--border); color: var(--ink); font-family: var(--sans); font-size: 12.5px; padding: 9px 26px 9px 13px; border-radius: 10px; outline:none; backdrop-filter: blur(10px); transition: border-color .2s, width .2s; }
@@ -192,8 +216,8 @@
    * jusqu'où elle a quelque chose à dire.
    */
   #legend{
-    position:fixed; left:14px; top:136px; z-index:20; width:min(268px, 92vw);
-    max-height: calc(100% - 172px);
+    position:fixed; left:14px; top:72px; z-index:20; width:min(268px, 92vw);
+    max-height: calc(100% - 104px);
     background: var(--panel); border:1px solid var(--border); border-radius:14px;
     backdrop-filter: blur(10px); overflow:hidden; display:flex; flex-direction:column;
     transition: width .24s cubic-bezier(.16,.84,.44,1);
@@ -203,6 +227,19 @@
    * par » glisse. Une barre TRÈS fine et discrète — visible, pas masquée —
    * puisque c'est désormais la SEULE indication qu'il y a plus à voir. */
   #lg-disposition{ flex-shrink:0; }
+  /* Les AXES de couleur (éditorial + structurel) : VERROUILLÉS hors du
+     défilement quand la fenêtre le permet. `flex-shrink:0` les fige au-dessus
+     de la liste — choisir un axe ne fait plus glisser la liste, et parcourir
+     les couleurs ne fait plus glisser les axes. L'ascenseur interne
+     (overflow) ne PARAÎT jamais tant qu'ils tiennent : il n'entre en jeu que
+     sur fenêtre trop courte, où la media query les rend réductibles
+     (flex-shrink:1) pour ne rien rogner. */
+  #lg-axes{ flex-shrink:0; overflow-y:auto; min-height:0;
+    scrollbar-width: thin; scrollbar-color: rgba(201,162,75,0.22) transparent; }
+  #lg-axes::-webkit-scrollbar{ width:4px; }
+  #lg-axes::-webkit-scrollbar-track{ background:transparent; }
+  #lg-axes::-webkit-scrollbar-thumb{ background: rgba(201,162,75,0.22); border-radius:4px; }
+  #lg-axes::-webkit-scrollbar-thumb:hover{ background: rgba(201,162,75,0.4); }
   #legend-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;
     scrollbar-width: thin; scrollbar-color: rgba(201,162,75,0.22) transparent; }
   #legend-scroll::-webkit-scrollbar{ width:4px; }
@@ -214,6 +251,7 @@
   /* Replié, il ne reste QUE le rail : tout bloc ajouté hors du défilement doit
      être listé ici, sinon il déborde du rail de 44 px. */
   #legend.collapsed #lg-disposition, #legend.collapsed #lg-arbre,
+  #legend.collapsed #lg-axes,
   #legend.collapsed #legend-scroll, #legend.collapsed #lg-foot{ display:none; }
   #legend-scroll, #lg-foot{ animation: lgfade .22s ease; }
   #lg-mini{ display:none; }
@@ -679,10 +717,12 @@
 
   /* ---------- chemins : panneau ancré à la LÉGENDE ----------
      Placé en JS (positionPathPanel) par rapport à la boîte de légende, qu'il
-     SUIT quand elle se replie/déplie — jamais de chevauchement. Replié = fine
-     barre verticale sous la légende ; déplié = à côté, jusqu'à la hauteur de
-     sa boîte (ascenseur au-delà). Ni left/top/max-height ici : c'est le JS. */
-  #path-panel{ position:fixed; z-index:21; width:222px; display:flex; flex-direction:column;
+     SUIT quand elle se replie/déplie — jamais de chevauchement. Replié comme
+     déplié, il se pose à DROITE de la légende : replié, c'est une fine barre
+     alignée sur son haut ; déplié, il s'élargit sur place jusqu'à la hauteur de
+     sa boîte (ascenseur au-delà). Ni left/top/max-height ici : c'est le JS.
+     Un peu plus large qu'avant (248 px) pour respirer et se lire mieux. */
+  #path-panel{ position:fixed; z-index:21; width:248px; display:flex; flex-direction:column;
     background: var(--panel); border:1px solid var(--border); border-radius:14px;
     backdrop-filter: blur(10px); overflow:hidden; }
   #path-panel[hidden]{ display:none; }
@@ -703,7 +743,7 @@
   #path-panel.folded #pp-clear,
   #path-panel.folded #pp-fold{ display:none; }
   #path-panel.folded #pp-body{ display:none; }
-  #pp-body{ padding:9px 12px; overflow-y:auto; min-height:0; }
+  #pp-body{ padding:11px 14px; overflow-y:auto; min-height:0; }
   #pp-body::-webkit-scrollbar{ width:0; }
   /* L'invite d'armement : le panneau DIT que le prochain clic construit, et
      s'il ouvre un NOUVEAU chemin ou ajoute une arrivée au même départ. */
@@ -737,7 +777,7 @@
   .pp-sr-item.unreach{ opacity:.5; cursor:not-allowed; }
   .pp-sr-item.unreach:hover{ background:transparent; color: var(--ink-dim); }
   .pp-sr-item.unreach .pp-sr-hops{ color:#f28e4b; }
-  #pp-hint{ font-size:10px; line-height:1.5; color: var(--ink-faint); }
+  #pp-hint{ font-size:10.5px; line-height:1.55; color: var(--ink-faint); }
   #pp-hint[hidden]{ display:none; }
   /* Un ARBRE = un départ et ses arrivées. Le groupe se lit d'un bloc : en-tête
      (l'origine), ses branches, son propre « ＋ arrivée ». Un liseré gauche les
@@ -745,7 +785,7 @@
   .pp-tree{ border-left:2px solid var(--border-strong); padding-left:8px; margin-bottom:11px; }
   .pp-tree-head{ display:flex; align-items:center; gap:6px; margin-bottom:3px; }
   .pp-oglyph{ color: var(--gold); font-size:8px; flex-shrink:0; }
-  .pp-oname{ flex:1; min-width:0; font-size:11px; color: var(--ink); font-weight:500; cursor:pointer;
+  .pp-oname{ flex:1; min-width:0; font-size:11.5px; color: var(--ink); font-weight:500; cursor:pointer;
              overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pp-oname:hover{ text-decoration:underline; text-underline-offset:2px; }
   .pp-tdel{ flex-shrink:0; cursor:pointer; color: var(--ink-faint); font-size:11px; }
@@ -759,7 +799,7 @@
             display:inline-block; cursor:pointer; }
   .pp-tadd:hover{ color: var(--gold); border-color: var(--border-strong); }
   .pp-branch{ margin-bottom:2px; }
-  .pp-brow{ display:flex; align-items:center; gap:7px; padding:5px 4px; border-radius:7px; cursor:pointer; font-size:11.5px; color: var(--ink-dim); }
+  .pp-brow{ display:flex; align-items:center; gap:7px; padding:6px 5px; border-radius:7px; cursor:pointer; font-size:12px; color: var(--ink-dim); }
   .pp-brow:hover{ background: rgba(255,255,255,0.04); color: var(--ink); }
   /* --branch : la couleur de CE chemin, posée en JS sur la branche. Elle sert
    * la pastille, et remonte au liseré et au nom quand la branche est en avant
@@ -1036,6 +1076,12 @@
     #title-block p{ display:none; }
     #title-block .tag{ margin-top: 4px; }
     #legend{ top: 58px; left: 10px; max-height: calc(100% - 68px); }
+    /* Fenêtre trop courte pour VERROUILLER les axes : on leur rend leur
+       souplesse (flex-shrink:1) — la liste des couleurs cède d'abord, puis, à
+       l'extrême, ce bloc glisse dans son propre ascenseur plutôt que de rogner
+       le pied de la légende. « quand la fenêtre n'est pas trop petite, on
+       bloque » : ici, elle l'est. */
+    #lg-axes{ flex-shrink:1; }
     #hint{ display:none; }
     /* Les amers gardent leur taille en pixels quand l'écran rétrécit : ils
        occupent donc proportionnellement plus de place et deux sections voisines
@@ -1109,7 +1155,7 @@
 <div id="header">
   <div id="title-block">
     <h1>Le Corps de Soliman al‑Halabi</h1>
-    <p>Cartographie interactive d'une carte mentale sur les restes humains en contexte muséal.</p>
+    <p>Cartographie mentale</p>
     <span class="tag" id="about-btn">ⓘ à propos &amp; méthode</span>
   </div>
   <div id="top-right">
@@ -1171,9 +1217,14 @@
     <div id="scope-hint"></div>
   </div>
 
-  <div id="legend-scroll">
-
-    <div class="lg-block">
+  <!-- Les axes de couleur, VERROUILLÉS hors du défilement quand la fenêtre le
+       permet : éditorial (les cinq questions) + structurel. Le choix de l'axe
+       ne bouge plus quand on parcourt les couleurs — seule la liste, dessous,
+       garde son ascenseur (« on garde la barre de défilement pour les
+       couleurs »). Sur une fenêtre trop courte, une media query rend ce bloc
+       réductible et lui rend un ascenseur (voir #lg-axes). Comme la
+       Disposition et l'Arborescence, il est masqué quand la légende est repliée. -->
+  <div class="lg-block" id="lg-axes">
       <!-- Pas de « Coloré par » ici : les onglets Quoi ?/Qui ?/Quand ?/Degré/Tissu
            disent déjà ce qu'ils font, la légende de plus n'ajoutait rien —
            juste de la hauteur, alors que ce bloc défile seul (cf. ci-dessus). -->
@@ -1208,6 +1259,10 @@
         <div class="tb" data-tab="role" title="degré de connexion, recompté sur l’étendue regardée — aucune donnée manquante">Degré<span class="badge" id="badge-role"></span></div>
         <div class="tb" data-tab="comp" title="composantes connexes, recalculées sur l’étendue regardée — aucune donnée manquante">Tissu<span class="badge" id="badge-comp"></span></div>
       </div>
+  </div>
+
+  <div id="legend-scroll">
+    <div class="lg-block">
       <div class="lg-title"><span id="lg-title-txt">Sujets</span><span class="clr" id="legend-reset">tout cocher</span></div>
       <div id="section-list"></div>
       <div id="regard-list" style="display:none;"></div>
@@ -6029,10 +6084,14 @@ function positionPathPanel() {
   const lr = legendEl.getBoundingClientRect();
   const gap = 10, margin = 14;
   if (pathPanel.classList.contains('folded')) {
-    pathPanel.style.left = lr.left + 'px';
+    // Replié : fine barre à DROITE de la légende (plus « dessous »), alignée sur
+    // son haut — et qui la SUIT quand la légende se replie/déplie, puisque
+    // lr.right se déplace avec elle. Même bord gauche que le panneau déplié :
+    // déplier ne fait que l'élargir sur place, sans saut.
+    pathPanel.style.left = (lr.right + gap) + 'px';
     pathPanel.style.maxHeight = '';
     const h = pathPanel.offsetHeight || 64; // la barre repliée est courte
-    const top = Math.min(lr.bottom + gap, window.innerHeight - h - margin);
+    const top = Math.min(lr.top, window.innerHeight - h - margin);
     pathPanel.style.top = Math.max(margin, top) + 'px';
   } else {
     pathPanel.style.left = (lr.right + gap) + 'px';
