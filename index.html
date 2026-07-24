@@ -339,7 +339,11 @@
   /* L'arborescence : le cadre du reste, donc au-dessus et hors du défilement.
      La ligne d'aide ENSEIGNE ce qu'on regarde — c'est la chose la moins
      devinable du corpus (le tronc précède les branches de cinq jours). */
-  #lg-arbre{ margin-bottom:8px; }
+  /* flex-shrink:0 comme la Disposition et les axes : ce sont des CONTRÔLES, pas
+     de la liste — ils ne doivent jamais se comprimer quand la légende atteint sa
+     hauteur max (sans ascenseur interne, ils se feraient rogner). Seule la liste
+     des couleurs (#legend-scroll) rétrécit et défile. */
+  #lg-arbre{ margin-bottom:8px; flex-shrink:0; }
   /* Aucune aide permanente sous l'arborescence : les trois boutons portent leur
      explication en infobulle, et ce bandeau ne PARAÎT que pour dire un refus
      (clic sur un axe muet), puis s'efface. Vide, il ne prend pas un pixel. */
@@ -439,7 +443,7 @@
   /* Pied compacté : tout ce qu'il y avait (étiquettes, curseur, épingles,
    * compte, épingler-la-légende) reste — mais compte et bascule d'épingle
    * partagent une rangée au lieu de deux, et marges/tailles sont resserrées. */
-  #lg-foot{ border-top:1px solid var(--border); padding:7px 12px 6px 12px; }
+  #lg-foot{ border-top:1px solid var(--border); padding:7px 12px 6px 12px; flex-shrink:0; }
   #lg-dense .lbl{ display:flex; align-items:center; gap:7px; font-size:10.5px; color: var(--ink-dim); white-space:nowrap; cursor:pointer; }
   #lg-dense .lbl input{ accent-color: var(--gold); width:12px; height:12px; flex-shrink:0; }
   #pin-info{ display:flex; align-items:center; gap:6px; margin-top:5px; font-size:9.5px; color: var(--ink-dim); }
