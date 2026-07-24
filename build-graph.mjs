@@ -251,6 +251,12 @@ const SIZE_SECTION = 3.4;
 const MIRO_SPAN_X = 320;       // largeur de la cartographie en unités de scène
 const MIRO_JITTER_Z = 2;       // épaisseur donnée au plan, pour que les nœuds
                                // superposés ne se masquent pas exactement
+// NB : un « dé-tassement » des amas (écarter les nœuds serrés pour loger les
+// boîtes) a été essayé et RETIRÉ — mesuré au banc : bouger les nœuds re-route le
+// circuit et AJOUTE des croisements (+5 % même en douceur, +10 % pour un vrai
+// écartement), pour un gain d'espacement marginal (les boîtes se chevauchent de
+// toute façon, l'écran ne peut en loger 570). Le circuit prime ; l'entassement
+// des boîtes se règle à l'écran (curseur à fond + survol), pas dans la géométrie.
 
 const CONST_R_XZ = 46;         // sphère des sections : rayon équatorial
 const CONST_R_Y = 32.2;        //                       demi-hauteur
