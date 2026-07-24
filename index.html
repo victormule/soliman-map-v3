@@ -585,16 +585,25 @@
   .sp-more{ font-size:11px; color: var(--ink-faint); padding: 6px 9px; }
 
   /* ---------- CSS2D persistent labels ----------
-     La carte s'accroche AU BORD de son nœud (obj.center posé côté droit ou
-     gauche par updateLabels), jamais dessus : le margin fait le dégagement.
-     Elle naît éteinte et s'allume par la classe `on` — c'est le fondu que
-     updateLabels orchestre ; sans `on`, une carte est en train de partir. */
+     De près, le nœud DEVIENT la boîte : la carte est CENTRÉE sur la position du
+     nœud (obj.center = ½,½ dans updateLabels), le texte tronqué à deux lignes.
+     Elle naît éteinte et s'allume par la classe `on` (le fondu qu'updateLabels
+     orchestre ; sans `on`, une carte s'en va). Au survol : `expanded` lève la
+     troncature, la boîte grandit sur place et passe au premier plan. */
   .node-label{ pointer-events:none; }
-  .node-label .card{ background: rgba(15,13,10,0.88); border:1px solid var(--border-strong); border-left-width:3px; border-radius: 6px; padding: 5px 8px; font-size: 10.5px; line-height:1.35; color: var(--ink); max-width: 168px; backdrop-filter: blur(3px); box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    margin: 0 10px; opacity: 0; transform: translateY(3px); transition: opacity .18s ease, transform .18s ease; }
-  .node-label.on .card{ opacity: 1; transform: none; }
+  .node-label .card{ position:relative; background: rgba(15,13,10,0.92); border:1px solid var(--border-strong); border-left-width:3px; border-radius: 6px; padding: 5px 8px; font-size: 10.5px; line-height:1.32; color: var(--ink); width: max-content; max-width: 150px; backdrop-filter: blur(3px); box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    opacity: 0; transition: opacity .16s ease, transform .16s cubic-bezier(.2,.7,.3,1), max-width .16s ease; }
+  .node-label.on .card{ opacity: 1; }
+  /* « Les premiers mots » : le texte entier, coupé à deux lignes. */
+  .node-label .lbl-txt{ display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; }
   .node-label .card img{ width:100%; border-radius:4px; margin-bottom:4px; display:block; }
-  .node-label.selected .card{ border-color: var(--gold); box-shadow: 0 0 0 1px rgba(201,162,75,0.3), 0 8px 22px rgba(0,0,0,0.5); }
+  .node-label.selected .card{ border-color: var(--gold); box-shadow: 0 0 0 1px rgba(201,162,75,0.3), 0 8px 22px rgba(0,0,0,0.55); }
+  /* Survol : la boîte grandit sur place et montre TOUT le texte. `!important`
+     car CSS2DRenderer réécrit un z-index par étiquette (tri en profondeur) à
+     chaque image : sans lui, la boîte survolée repasserait sous ses voisines. */
+  .node-label.hovered{ z-index: 9999 !important; }
+  .node-label.hovered .card{ max-width: 232px; box-shadow: 0 0 0 1px rgba(201,162,75,0.35), 0 10px 28px rgba(0,0,0,0.65); }
+  .node-label.hovered .lbl-txt{ -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
 
   #tooltip{ position:fixed; pointer-events:none; z-index: 25; background: rgba(10,9,8,0.92); border:1px solid var(--border-strong); color: var(--ink); font-size: 12px; padding: 7px 11px; border-radius: 7px; max-width: 260px; line-height:1.4; display:none; backdrop-filter: blur(6px); }
 
@@ -3618,6 +3627,16 @@ const connectorEdges = {
  * la table SECTIONS de build-graph.mjs), et écrire son nom en grand au milieu du
  * nuage laisserait croire que quelque chose se tient là.
  */
+/**
+ * L'étiquette N'EST PLUS accrochée À CÔTÉ du nœud : de près, le rond DEVIENT la
+ * boîte — comme les post-its du tableau d'origine. La carte est CENTRÉE sur la
+ * position du nœud (voir updateLabels : obj.center = ½,½) et porte le texte
+ * ENTIER, tronqué à deux lignes ; au survol, la classe `expanded` lève la
+ * troncature et la boîte grandit sur place pour tout montrer (fini le doublon
+ * infobulle). La sphère demeure derrière : sa lueur nimbe la boîte, exactement
+ * comme un post-it éclairé. Loin, aucune boîte ne tient : il ne reste que la
+ * constellation de lueurs — c'est le zoom qui fait apparaître le texte.
+ */
 const labelObjects = new Map(); // id -> {obj, card, div}
 NODES.forEach(n => {
   if (n.kind === 'section') return;
@@ -3632,11 +3651,20 @@ NODES.forEach(n => {
     card.appendChild(img);
   }
   const txt = document.createElement('div');
-  txt.textContent = n.label;
+  txt.className = 'lbl-txt';
+  // Le texte ENTIER, tronqué en CSS (deux lignes) : « les premiers mots » au
+  // repos, et rien à réécrire au survol — la boîte grandit, le texte est déjà là.
+  // Le build retire un « x » de tête (marqueur Miro) au LABEL des titres mais le
+  // garde dans `fullText` brut : la boîte affiche le même texte nettoyé, pas le
+  // brut — sinon un « x Naturalisation… » réapparaîtrait, absent partout ailleurs.
+  let full = n.fullText || n.label || '';
+  if (/^x\s+/i.test(full) && !/^x\s+/i.test(n.label || '')) full = full.replace(/^x\s+/i, '');
+  txt.textContent = full;
   card.appendChild(txt);
   div.appendChild(card);
   const obj = new CSS2DObject(div);
   obj.position.set(0, 0, 0);
+  obj.center.set(0.5, 0.5);   // CENTRÉE sur le nœud : la boîte prend sa place
   obj.visible = false;
   n.__group.add(obj);
   labelObjects.set(n.id, { obj, card, div });
@@ -8907,13 +8935,25 @@ function updateHover() {
         }
       } else {
         renderer.domElement.style.cursor = 'pointer';
+        const lab = labelObjects.get(hoverNode.id);
         const lexicalAssignment = state.lexicalFocus?.assignments.get(hoverNode.id);
-        const relationPrefix = lexicalAssignment ? `${lexicalAssignment.relationLabel || lexicalAssignment.relationClass} · ` : '';
-        tooltip.textContent = relationPrefix + hoverNode.label;
+        // Le nœud EST déjà une boîte à l'écran → elle s'agrandit SUR PLACE (voir
+        // updateLabels), pas de doublon en infobulle. Sinon (nœud lointain, boîte
+        // tue), l'infobulle reste le seul moyen de lire son texte.
+        if (lab && lab.obj.visible && !lexicalAssignment) {
+          hoveredLabelId = hoverNode.id;
+          tooltip.style.display = 'none';
+        } else {
+          hoveredLabelId = null;
+          tooltip.style.display = 'block';
+          const relationPrefix = lexicalAssignment ? `${lexicalAssignment.relationLabel || lexicalAssignment.relationClass} · ` : '';
+          tooltip.textContent = relationPrefix + hoverNode.label;
+        }
       }
     }
   } else if (hovered) {
     hovered = null;
+    hoveredLabelId = null;   // plus de boîte survolée : elle rétrécit, les voisines reviennent
     pathPreview = null; // plus rien sous le curseur : la prévisualisation s'efface
     renderer.domElement.style.cursor = pathOrigin ? 'crosshair' : 'default';
     tooltip.style.display = 'none';
@@ -8949,13 +8989,13 @@ const BASE_PROX_DIST = { item: 52, image: 78 };
  * (labelSide — une étiquette qui saute de gauche à droite fatigue), et
  * s'allume/s'éteint en fondu court (classe `on`) plutôt qu'en claquement.
  */
-const labelSize = new Map();   // id → {w,h} : mesure UNIQUE de la carte réelle
-const labelSide = new Map();   // id → 0 droite · 1 gauche (stabilité du côté)
+const labelSize = new Map();   // id → {w,h} de la carte au REPOS (2 lignes)
+const labelSizeBig = new Map();// id → {w,h} de la carte AGRANDIE (survol, texte entier)
 const labelFade = new Map();   // id → instant du dernier « éteins-toi » (fondu)
 const labelPendingOn = [];     // cartes tout juste posées : `on` au prochain rendu
+let hoveredLabelId = null;     // la boîte sous le curseur : agrandie, elle prime
 const _lblPt = new THREE.Vector3();
 const LBL_PAD = 4;             // respiration minimale entre deux cartes (px)
-const LBL_GAP = 10;            // dégagement nœud → carte (le margin de .card)
 const LBL_FADE_MS = 260;       // durée du fondu de sortie avant retrait du DOM
 // L'interface fixe que les cartes n'ont pas le droit de recouvrir. Les
 // superpositions plein écran (fiche méthode, ∑) n'y sont pas : elles passent
@@ -8964,13 +9004,13 @@ const LBL_UI_BLOCKERS = ['#title-block', '#search-wrap', '#legend', '#path-panel
                          '#detail-panel', '#group-panel', '#hint', '#ego-bar', '#search-panel'];
 
 // Avant la première mesure : estimation depuis la longueur du texte (police
-// 10,5 px, gabarit max 168 px). Grossière mais du bon ordre — remplacée par la
-// mesure réelle dès que la carte s'est affichée une fois.
+// 10,5 px, gabarit max 150 px, DEUX lignes au repos). Grossière mais du bon
+// ordre — remplacée par la mesure réelle dès que la carte s'est affichée.
 function estimateLabelSize(n) {
-  const chars = (n.label || '').length;
-  const wTxt = Math.min(152, Math.max(24, chars * 5.4));
-  const lines = Math.max(1, Math.ceil((chars * 5.4) / 152));
-  return { w: wTxt + 18, h: lines * 14.2 + 12 + (n.image ? 96 : 0) };
+  const chars = (n.fullText || n.label || '').length;
+  const wTxt = Math.min(150, Math.max(30, chars * 5.4));
+  const lines = Math.min(2, Math.max(1, Math.ceil((chars * 5.4) / 150)));
+  return { w: wTxt + 18, h: lines * 14 + 12 + (n.image ? 96 : 0) };
 }
 
 function updateLabels() {
@@ -9062,8 +9102,10 @@ function updateLabels() {
   candidates.sort((u, v) => u.prio - v.prio || u.ord - v.ord
     || (u.id < v.id ? -1 : u.id > v.id ? 1 : 0));
 
-  // ── Projection écran et pose gloutonne : droite d'abord, gauche sinon,
-  //    silence si les deux côtés sont pris (sauf la sélection, qui prime).
+  // ── Projection écran et pose gloutonne, CENTRÉE sur le nœud : le rond DEVIENT
+  //    la boîte. Une boîte qui en chevaucherait une déjà posée se tait — elle
+  //    reparaîtra au zoom, quand la place existe (c'est le zoom qui règle la
+  //    densité). La boîte SURVOLÉE réclame sa taille AGRANDIE et ne cède jamais.
   const sw = window.innerWidth, sh = window.innerHeight;
   const keptRects = [];
   // L'interface est LÀ AVANT les étiquettes : titre, recherche, légende,
@@ -9074,7 +9116,8 @@ function updateLabels() {
     const r = el.getBoundingClientRect();
     if (r.width > 0 && r.height > 0) keptRects.push({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom });
   }
-  const keptSide = new Map();   // id → côté retenu, pour l'application ci-dessous
+  const placed = new Map();   // id → { sx, sy, w, h }
+  let hoveredStillPlaced = false;
   for (const c of candidates) {
     const n = nodeById.get(c.id);
     const g = n && n.__group;
@@ -9083,41 +9126,38 @@ function updateLabels() {
     if (_lblPt.z > 1 || _lblPt.z < -1) continue;   // derrière la caméra
     const sx = (_lblPt.x * 0.5 + 0.5) * sw;
     const sy = (-_lblPt.y * 0.5 + 0.5) * sh;
-    if (sx < -220 || sx > sw + 220 || sy < -120 || sy > sh + 120) continue;
+    if (sx < -160 || sx > sw + 160 || sy < -120 || sy > sh + 120) continue;
+    const hovered = c.id === hoveredLabelId;
+    // Le placement se fait TOUJOURS à la taille de REPOS — même pour la boîte
+    // survolée : l'ENSEMBLE des boîtes visibles ne doit pas changer quand on
+    // survole (sinon des voisines apparaîtraient/disparaîtraient au passage du
+    // curseur). L'agrandissement et la poussée se jouent APRÈS, sur ce plan figé.
     const s = labelSize.get(c.id) || estimateLabelSize(n);
-    const w = s.w + LBL_GAP, h = s.h;
-    const pref = labelSide.get(c.id) || 0;
-    let side = -1, rect = null;
-    for (const trySide of (pref === 0 ? [0, 1] : [1, 0])) {
-      const r = trySide === 0
-        ? { x0: sx, x1: sx + w, y0: sy - h / 2, y1: sy + h / 2 }
-        : { x0: sx - w, x1: sx, y0: sy - h / 2, y1: sy + h / 2 };
-      let free = true;
-      for (const k of keptRects) {
-        if (r.x0 < k.x1 + LBL_PAD && r.x1 > k.x0 - LBL_PAD
-          && r.y0 < k.y1 + LBL_PAD && r.y1 > k.y0 - LBL_PAD) { free = false; break; }
-      }
-      if (free) { side = trySide; rect = r; break; }
+    const rect = { x0: sx - s.w / 2, x1: sx + s.w / 2, y0: sy - s.h / 2, y1: sy + s.h / 2 };
+    let free = true;
+    for (const k of keptRects) {
+      if (rect.x0 < k.x1 + LBL_PAD && rect.x1 > k.x0 - LBL_PAD
+        && rect.y0 < k.y1 + LBL_PAD && rect.y1 > k.y0 - LBL_PAD) { free = false; break; }
     }
-    if (side < 0) {
-      if (c.prio > 0) continue;   // la place manque : on se tait, le zoom rendra la parole
-      side = pref;                // …sauf la sélection, qui ne se tait jamais
-      rect = side === 0
-        ? { x0: sx, x1: sx + w, y0: sy - h / 2, y1: sy + h / 2 }
-        : { x0: sx - w, x1: sx, y0: sy - h / 2, y1: sy + h / 2 };
-    }
-    labelSide.set(c.id, side);
+    // Sélection (prio 0) et boîte survolée passent MÊME en chevauchant ; les
+    // autres se taisent quand la place manque.
+    if (!free && c.prio > 0 && !hovered) continue;
     keptRects.push(rect);
-    keptSide.set(c.id, side);
+    placed.set(c.id, { sx, sy, w: s.w, h: s.h });
+    if (hovered) hoveredStillPlaced = true;
   }
+  // Le survol a pu quitter l'écran (zoom, filtre) : la boîte n'existe plus.
+  if (hoveredLabelId && !hoveredStillPlaced) hoveredLabelId = null;
 
-  // ── Application, avec FONDU : une carte qui se tait s'éteint en douceur
-  //    (classe `on` retirée), puis quitte le DOM une fois le fondu joué.
-  labelObjects.forEach(({ obj, div }, id) => {
-    const side = keptSide.get(id);
-    if (side !== undefined) {
-      // L'ancrage au BORD du nœud, côté choisi — jamais posée dessus.
-      obj.center.set(side === 0 ? 0 : 1, 0.5);
+  // ── Application : fondu d'entrée/sortie, classe `hovered` (agrandissement),
+  //    et POUSSÉE des voisines pour dégager la boîte survolée.
+  // La boîte survolée et son EMPREINTE AGRANDIE (mesurée, sinon estimée large) :
+  // c'est elle qui écarte les voisines, pas son rectangle de repos.
+  const hov = hoveredLabelId ? placed.get(hoveredLabelId) : null;
+  const hovBig = hov ? (labelSizeBig.get(hoveredLabelId) || { w: hov.w + 78, h: hov.h * 2 + 4 }) : null;
+  labelObjects.forEach(({ obj, card, div }, id) => {
+    const p = placed.get(id);
+    if (p) {
       labelFade.delete(id);
       if (!obj.visible) {
         obj.visible = true;   // apparaît éteinte : `on` au prochain rendu → fondu d'entrée
@@ -9125,9 +9165,23 @@ function updateLabels() {
         labelPendingOn.push(div);
       } else div.classList.add('on');
       div.classList.toggle('selected', selNode && id === selNode.id);
+      const isHov = id === hoveredLabelId;
+      div.classList.toggle('hovered', isHov);
+      // Poussée : une voisine qui empiète sur la boîte survolée s'écarte du côté
+      // le plus court, le temps du survol ; sinon elle revient à sa place.
+      let dx = 0, dy = 0;
+      if (hov && !isHov) {
+        const ox = Math.min(hov.sx + hovBig.w / 2, p.sx + p.w / 2) - Math.max(hov.sx - hovBig.w / 2, p.sx - p.w / 2);
+        const oy = Math.min(hov.sy + hovBig.h / 2, p.sy + p.h / 2) - Math.max(hov.sy - hovBig.h / 2, p.sy - p.h / 2);
+        if (ox > -LBL_PAD && oy > -LBL_PAD) {
+          if (ox < oy) dx = (p.sx >= hov.sx ? 1 : -1) * (ox + LBL_PAD);
+          else dy = (p.sy >= hov.sy ? 1 : -1) * (oy + LBL_PAD);
+        }
+      }
+      card.style.transform = (dx || dy) ? `translate(${Math.round(dx)}px, ${Math.round(dy)}px)` : '';
     } else if (obj.visible) {
       const t0 = labelFade.get(id);
-      if (t0 === undefined) { labelFade.set(id, now); div.classList.remove('on'); }
+      if (t0 === undefined) { labelFade.set(id, now); div.classList.remove('on', 'hovered'); card.style.transform = ''; }
       else if (now - t0 > LBL_FADE_MS) { obj.visible = false; labelFade.delete(id); }
     }
   });
@@ -9138,14 +9192,15 @@ function updateLabels() {
     requestAnimationFrame(() => requestAnimationFrame(() => fresh.forEach(d => d.classList.add('on'))));
   }
 
-  // ── Mesure UNIQUE des cartes qui viennent de s'afficher : leur vraie taille
-  //    remplace l'estimation au prochain passage (le texte d'une carte ne
-  //    change jamais, une mesure suffit pour toujours).
-  keptSide.forEach((side, id) => {
-    if (labelSize.has(id)) return;
+  // ── Mesure UNIQUE (repos ET agrandie) : la vraie taille remplace l'estimation
+  //    au passage suivant. Le texte ne change jamais, une mesure suffit.
+  placed.forEach((p, id) => {
     const { card } = labelObjects.get(id);
-    const w = card.offsetWidth, h = card.offsetHeight;
-    if (w > 0 && h > 0) labelSize.set(id, { w: w + 2, h: h + 2 });
+    if (id === hoveredLabelId) {
+      if (!labelSizeBig.has(id)) { const w = card.offsetWidth, h = card.offsetHeight; if (w > 0 && h > 0) labelSizeBig.set(id, { w: w + 2, h: h + 2 }); }
+    } else if (!labelSize.has(id)) {
+      const w = card.offsetWidth, h = card.offsetHeight; if (w > 0 && h > 0) labelSize.set(id, { w: w + 2, h: h + 2 });
+    }
   });
 }
 
