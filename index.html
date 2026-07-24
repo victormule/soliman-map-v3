@@ -584,26 +584,54 @@
   .sp-fig-row .sp-fig-n{ font-family: var(--mono); font-size:10.5px; color: var(--ink-faint); }
   .sp-more{ font-size:11px; color: var(--ink-faint); padding: 6px 9px; }
 
-  /* ---------- CSS2D persistent labels ----------
+  /* ---------- CSS2D persistent labels — « post-it Miro » ----------
      De près, le nœud DEVIENT la boîte : la carte est CENTRÉE sur la position du
-     nœud (obj.center = ½,½ dans updateLabels), le texte tronqué à deux lignes.
-     Elle naît éteinte et s'allume par la classe `on` (le fondu qu'updateLabels
-     orchestre ; sans `on`, une carte s'en va). Au survol : `expanded` lève la
-     troncature, la boîte grandit sur place et passe au premier plan. */
+     nœud (obj.center = ½,½ dans updateLabels). Fond PLEIN de la couleur du nœud
+     (applyLabelSkin → --cat-fill), texte ivoire lisible grâce à un VOILE sombre
+     central dont la force s'adapte à la clarté du fond (--veil) — léger sur un
+     nœud sombre, plus soutenu sur un jaune vif ; le voile s'efface avant le bord,
+     où la couleur nimbe encore. La carte naît éteinte et s'allume par la classe
+     `on` (le fondu qu'updateLabels orchestre). Au survol, `hovered` lève la
+     troncature et la boîte grandit ; au repos, `full` fait de même LÀ où la place
+     existe (Pass 2 d'updateLabels). */
   .node-label{ pointer-events:none; }
-  .node-label .card{ position:relative; background: rgba(15,13,10,0.92); border:1px solid var(--border-strong); border-left-width:3px; border-radius: 6px; padding: 5px 8px; font-size: 10.5px; line-height:1.32; color: var(--ink); width: max-content; max-width: 150px; backdrop-filter: blur(3px); box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  /* Deux couches de fond : le VOILE sombre au centre (plat sur ~44 % du rayon
+     pour couvrir le texte, puis s'efface avant le bord) POSÉ SUR le fond plein de
+     la couleur du nœud. L'image, elle, reste au-dessus des deux (c'est du
+     contenu) : le voile ne l'assombrit jamais. */
+  .node-label .card{
+    position:relative; border-radius: 6px; padding: 5px 8px;
+    font-size: 10.5px; line-height:1.32; font-weight: 500;
+    width: max-content; max-width: 150px; color: #f5efe2;
+    background:
+      radial-gradient(78% 92% at 50% 50%,
+        rgba(0,0,0, var(--veil, 0.45)) 0%,
+        rgba(0,0,0, var(--veil, 0.45)) 44%,
+        rgba(0,0,0, calc(var(--veil, 0.45) * 0.5)) 70%,
+        rgba(0,0,0, 0) 92%),
+      var(--cat-fill, rgba(15,13,10,0.92));
+    border: 1px solid var(--cat-edge, var(--border-strong));
+    box-shadow: 0 2px 9px rgba(0,0,0,0.42), 0 0 16px -5px var(--cat, transparent);
     opacity: 0; transition: opacity .16s ease, transform .16s cubic-bezier(.2,.7,.3,1), max-width .16s ease; }
   .node-label.on .card{ opacity: 1; }
-  /* « Les premiers mots » : le texte entier, coupé à deux lignes. */
-  .node-label .lbl-txt{ display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; }
+  /* « Les premiers mots » : le texte entier, coupé à deux lignes. overflow-wrap
+     anywhere : une URL (ou tout mot très long, sans espace) se CASSE pour rester
+     dans la boîte au lieu d'en déborder — visible surtout à l'état déployé. */
+  .node-label .lbl-txt{ display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; overflow-wrap:anywhere; word-break:break-word; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
   .node-label .card img{ width:100%; border-radius:4px; margin-bottom:4px; display:block; }
-  .node-label.selected .card{ border-color: var(--gold); box-shadow: 0 0 0 1px rgba(201,162,75,0.3), 0 8px 22px rgba(0,0,0,0.55); }
+  .node-label.selected .card{ border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,162,75,0.5), 0 6px 18px rgba(0,0,0,0.5); }
   /* Survol : la boîte grandit sur place et montre TOUT le texte. `!important`
      car CSS2DRenderer réécrit un z-index par étiquette (tri en profondeur) à
      chaque image : sans lui, la boîte survolée repasserait sous ses voisines. */
   .node-label.hovered{ z-index: 9999 !important; }
-  .node-label.hovered .card{ max-width: 232px; box-shadow: 0 0 0 1px rgba(201,162,75,0.35), 0 10px 28px rgba(0,0,0,0.65); }
+  .node-label.hovered .card{ max-width: var(--full-w, 232px);
+    box-shadow: 0 0 0 1px var(--cat-edge, var(--border-strong)), 0 10px 26px rgba(0,0,0,0.55), 0 0 22px -4px var(--cat, transparent); }
   .node-label.hovered .lbl-txt{ -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
+  /* Déploiement AU REPOS : un texte tronqué s'ouvre en entier là où la place
+     existe (Pass 2), sans l'emphase du survol. Largeur ÉQUILIBRÉE (--full-w,
+     posée à la création) plutôt qu'une bande large de 232 px. */
+  .node-label.full .card{ max-width: var(--full-w, 232px); }
+  .node-label.full .lbl-txt{ -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
 
   #tooltip{ position:fixed; pointer-events:none; z-index: 25; background: rgba(10,9,8,0.92); border:1px solid var(--border-strong); color: var(--ink); font-size: 12px; padding: 7px 11px; border-radius: 7px; max-width: 260px; line-height:1.4; display:none; backdrop-filter: blur(6px); }
 
@@ -2899,6 +2927,70 @@ function colorFor(n) {
   return AXES[state.legendTab].colorOf(n);
 }
 
+/* ─────────────────────────────────────── Peau des étiquettes « post-it Miro »
+ * Chaque carte rend le post-it du tableau d'origine : fond PLEIN de la couleur
+ * du nœud, texte ivoire lisible grâce à un voile sombre central adaptatif. Les
+ * helpers ci-dessous calculent cette peau ; applyLabelSkin la pose sur la carte.
+ */
+
+// #rrggbb / #rgb → [r,g,b] sRGB (0..1), ou null si illisible.
+function _srgb(hex) {
+  let h = String(hex || '').trim().replace(/^#/, '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  const n = parseInt(h, 16);
+  return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+}
+function _hex(rgb) {
+  return '#' + rgb.map(v => Math.max(0, Math.min(255, Math.round(v * 255)))
+    .toString(16).padStart(2, '0')).join('');
+}
+// Luminance relative WCAG — sert à doser le voile selon la clarté du fond.
+function _lum(rgb) {
+  const [r, g, b] = rgb.map(v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+// La carte v2 : fond PLEIN de la couleur du nœud (à peine voilé de papier chaud
+// pour ôter la dureté d'un bloc saturé), bord un ton plus sombre pour la détacher
+// du fond noir, et un VOILE sombre central dont la force s'adapte à la clarté du
+// fond (--veil) : léger sur un nœud déjà sombre, plus soutenu sur un jaune vif —
+// pour que l'encre ivoire reste lisible sur TOUTE la palette (validé ≥5:1) sans
+// jamais noyer la couleur, qui continue de nimber les bords de la boîte.
+function labelSkin(cat) {
+  const rgb = _srgb(cat);
+  if (!rgb) return null;
+  const paper = [0xf2 / 255, 0xea / 255, 0xd8 / 255];
+  const fillRgb = rgb.map((v, i) => v * 0.94 + paper[i] * 0.06);
+  const edgeRgb = rgb.map(v => v * 0.62);
+  const veil = Math.max(0.34, Math.min(0.66, 0.26 + 0.55 * _lum(fillRgb)));
+  return { fill: _hex(fillRgb), edge: _hex(edgeRgb), veil: veil.toFixed(3) };
+}
+
+// Applique la couleur d'axe à une carte : le fond plein + le bord + l'encre (via
+// --cat / --cat-fill / --cat-edge / --veil). Appelée à la création ET par
+// recolorAll quand on change d'axe — la carte suit sa sphère.
+function applyLabelSkin(card, cat) {
+  card.style.setProperty('--cat', cat);
+  const s = labelSkin(cat);
+  if (!s) return;
+  card.style.setProperty('--cat-fill', s.fill);
+  card.style.setProperty('--cat-edge', s.edge);
+  card.style.setProperty('--veil', s.veil);
+}
+
+// Largeur cible d'une boîte DÉPLOYÉE (survol ou déploiement au repos). Plutôt
+// qu'étirer le texte sur toute la largeur (une bande large et plate), on vise un
+// format ÉQUILIBRÉ hauteur/largeur : la largeur qui rend la boîte à peu près
+// aussi haute que large croît comme la RACINE de la longueur du texte — un texte
+// court reste compact, un long s'élève au lieu de s'étaler. Bornée pour rester
+// lisible. Le facteur (1.4) règle le penchant : plus bas = plus carré. Constante
+// par nœud (le texte ne change jamais) → posée une fois sur la carte, en --full-w.
+function fullBoxWidth(n) {
+  const textLen = (n.fullText || n.label || '').length * 5.4;
+  const inner = Math.sqrt(1.4 * textLen * 14);
+  return Math.round(Math.max(100, Math.min(232, inner + 16)));
+}
+
 // « 2025-10-28 » -> « 28 octobre 2025 ». Le site est en français, et une date
 // ISO dans une phrase se lit mal.
 const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
@@ -3304,6 +3396,11 @@ function setNodeVisual(g, mainOpacity, frameOpacity, scale) {
   g.userData.mainMesh.material.opacity = mainOpacity;
   if (g.userData.frameMesh && frameOpacity !== null) g.userData.frameMesh.material.opacity = frameOpacity;
   g.userData.mainMesh.scale.setScalar(scale);
+  // v2 « le cercle devient la boîte » : on retient l'opacité ALLUMÉE ici décidée,
+  // pour que le fondu-boîte (applyBoxFade, par frame) parte toujours d'elle et ne
+  // se dégrade pas d'image en image. Inerte hors v2 — deux écritures de champ.
+  g.userData.litMain = mainOpacity;
+  if (frameOpacity !== null) g.userData.litFrame = frameOpacity;
 }
 
 function setEdgeOpacityTargets(connectorOpacity, conceptOpacity) {
@@ -3644,7 +3741,8 @@ NODES.forEach(n => {
   div.className = 'node-label';
   const card = document.createElement('div');
   card.className = 'card';
-  card.style.borderLeftColor = colorFor(n);
+  applyLabelSkin(card, colorFor(n));
+  card.style.setProperty('--full-w', fullBoxWidth(n) + 'px');   // largeur déployée équilibrée
   if (n.image) {
     const img = document.createElement('img');
     img.src = n.image;
@@ -4283,7 +4381,7 @@ function recolorAll() {
       g.userData.mainMesh.material.color.set(new THREE.Color(c).multiplyScalar(brightness));
     }
     const lab = labelObjects.get(n.id);
-    if (lab && lab.card) lab.card.style.borderLeftColor = c;  // un amer n'a pas de carte
+    if (lab && lab.card) applyLabelSkin(lab.card, c);  // un amer n'a pas de carte
   });
   updateVisuals(); // réécrit aussi les couleurs/visibilités des liens
   // La fiche ouverte colore ses voisins par l'axe COURANT (voir
@@ -8883,7 +8981,15 @@ resetIdle();
 // ne doit être ni survolable ni cliquable : on ignore les touches dont le
 // matériau est à ~0 d'opacité.
 function firstVisibleHit(hits) {
-  for (const h of hits) { if (h.object.material.opacity > 0.03) return h; }
+  for (const h of hits) {
+    if (h.object.material.opacity > 0.03) return h;
+    // La sphère éteinte PARCE QUE sa boîte la remplace (« cercle → boîte ») reste
+    // survolable — sinon on ne pourrait plus l'agrandir ni la lire. Sa boîte
+    // visible est alors sa seule présence à l'écran : c'est le bon nœud.
+    const g = meshToGroup.get(h.object);
+    const lab = g && labelObjects.get(g.userData.node.id);
+    if (lab && lab.obj.visible) return h;
+  }
   return null;
 }
 
@@ -8943,6 +9049,14 @@ function updateHover() {
         if (lab && lab.obj.visible && !lexicalAssignment) {
           hoveredLabelId = hoverNode.id;
           tooltip.style.display = 'none';
+        } else if (lab && !lexicalAssignment) {
+          // Survoler un nœud le fait ÉCLORE en boîte (même lointain, même
+          // « tu ») et s'agrandir SUR PLACE — plus d'infobulle doublon. On force
+          // un passage d'updateLabels pour qu'elle paraisse sans attendre le
+          // prochain tick (updateLabels ne tourne qu'une image sur six).
+          hoveredLabelId = hoverNode.id;
+          tooltip.style.display = 'none';
+          updateLabels();
         } else {
           hoveredLabelId = null;
           tooltip.style.display = 'block';
@@ -9011,6 +9125,21 @@ function estimateLabelSize(n) {
   const wTxt = Math.min(150, Math.max(30, chars * 5.4));
   const lines = Math.min(2, Math.max(1, Math.ceil((chars * 5.4) / 150)));
   return { w: wTxt + 18, h: lines * 14 + 12 + (n.image ? 96 : 0) };
+}
+
+// Empreinte de la boîte AGRANDIE (survol : max-width 232 px, troncature levée) —
+// estimée depuis la longueur du texte tant que la vraie mesure (labelSizeBig)
+// n'existe pas. Elle sert à ÉCARTER les voisines dès la PREMIÈRE frame du survol :
+// sans elle, l'empreinte de secours (deux fois le repos) sous-estimait grossièrement
+// un texte long, qui recouvrait ses voisines le temps de grandir avant qu'elles ne
+// sautent. Fidèle dès la première image, la poussée les fait glisser DE CONCERT
+// avec l'agrandissement.
+function estimateBigSize(n) {
+  const chars = (n.fullText || n.label || '').length;
+  const w = fullBoxWidth(n);   // même largeur cible que la carte (--full-w) : mesures cohérentes
+  const innerW = Math.max(1, w - 16);
+  const lines = Math.max(1, Math.ceil(chars * 5.4 / innerW));
+  return { w, h: lines * 14 + 12 + (n.image ? Math.round(w * 0.62) + 8 : 0) };
 }
 
 function updateLabels() {
@@ -9083,6 +9212,10 @@ function updateLabels() {
     seen.add(id);
     candidates.push({ id, prio, ord });
   };
+  // Le nœud SOUS LE CURSEUR passe avant tout : en v2 le survol le fait éclore en
+  // boîte même s'il n'était candidat d'aucune proximité (voir updateHover). En
+  // v1, hoveredLabelId ne vaut que pour une boîte DÉJÀ visible — donc inoffensif.
+  if (hoveredLabelId) propose(hoveredLabelId, -1, 0);
   alwaysIds.forEach(id => propose(id, id === state.selectedId ? 0 : 1, 0));
   pinnedIds.forEach(id => {
     const n = nodeById.get(id);
@@ -9114,15 +9247,16 @@ function updateLabels() {
   //    densité). La boîte SURVOLÉE réclame sa taille AGRANDIE et ne cède jamais.
   const sw = window.innerWidth, sh = window.innerHeight;
   const keptRects = [];
+  const uiRects = [];   // v2 : l'UI, gardée à part pour le déploiement au repos (Pass 2)
   // L'interface est LÀ AVANT les étiquettes : titre, recherche, légende,
   // panneaux et invite réservent leur place, une carte ne se pose pas dessous.
   for (const sel of LBL_UI_BLOCKERS) {
     const el = document.querySelector(sel);
     if (!el) continue;
     const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) keptRects.push({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom });
+    if (r.width > 0 && r.height > 0) { const rr = { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }; keptRects.push(rr); uiRects.push(rr); }
   }
-  const placed = new Map();   // id → { sx, sy, w, h }
+  const placed = new Map();   // id → { sx, sy, w, h, full }
   let hoveredStillPlaced = false;
   for (const c of candidates) {
     const n = nodeById.get(c.id);
@@ -9150,18 +9284,51 @@ function updateLabels() {
     // montre tout, chevauchements assumés.
     if (!free && c.prio > 0 && !hovered && !showAll) continue;
     keptRects.push(rect);
-    placed.set(c.id, { sx, sy, w: s.w, h: s.h });
+    placed.set(c.id, { sx, sy, w: s.w, h: s.h, full: false });
     if (hovered) hoveredStillPlaced = true;
   }
   // Le survol a pu quitter l'écran (zoom, filtre) : la boîte n'existe plus.
   if (hoveredLabelId && !hoveredStillPlaced) hoveredLabelId = null;
+
+  // ── DÉPLOIEMENT AU REPOS. Après la pose (au repos, 2 lignes), on ouvre en
+  //    ENTIER les textes tronqués LÀ OÙ LA PLACE EXISTE — « même sans survol ».
+  //    C'est le zoom/densité qui décide : peu de boîtes → chacune se déploie ; mur
+  //    dense → elles restent compactes. On parcourt dans l'ordre des candidats
+  //    (priorité) pour que les plus légitimes s'ouvrent d'abord, et chaque
+  //    ouverture retenue borne les suivantes (jamais se déployer SUR une voisine).
+  //    L'ENSEMBLE des boîtes visibles, lui, ne bouge pas : il a été arrêté au repos
+  //    ci-dessus — seul le texte de certaines s'ouvre en place.
+  if (!showAll) {
+    const overlaps = (r, selfId) => {
+      for (const k of uiRects) {
+        if (r.x0 < k.x1 + LBL_PAD && r.x1 > k.x0 - LBL_PAD && r.y0 < k.y1 + LBL_PAD && r.y1 > k.y0 - LBL_PAD) return true;
+      }
+      for (const [id2, p2] of placed) {
+        if (id2 === selfId) continue;
+        if (r.x0 < p2.sx + p2.w / 2 + LBL_PAD && r.x1 > p2.sx - p2.w / 2 - LBL_PAD
+          && r.y0 < p2.sy + p2.h / 2 + LBL_PAD && r.y1 > p2.sy - p2.h / 2 - LBL_PAD) return true;
+      }
+      return false;
+    };
+    for (const c of candidates) {
+      const p = placed.get(c.id);
+      if (!p || p.full || c.id === hoveredLabelId) continue;
+      const big = labelSizeBig.get(c.id) || estimateBigSize(nodeById.get(c.id));
+      if (big.h <= p.h + 1 && big.w <= p.w + 1) continue;   // texte non tronqué : rien à ouvrir
+      const r = { x0: p.sx - big.w / 2, x1: p.sx + big.w / 2, y0: p.sy - big.h / 2, y1: p.sy + big.h / 2 };
+      if (overlaps(r, c.id)) continue;                      // pas la place : reste compact
+      p.w = big.w; p.h = big.h; p.full = true;              // la place existe : on déploie
+    }
+  }
 
   // ── Application : fondu d'entrée/sortie, classe `hovered` (agrandissement),
   //    et POUSSÉE des voisines pour dégager la boîte survolée.
   // La boîte survolée et son EMPREINTE AGRANDIE (mesurée, sinon estimée large) :
   // c'est elle qui écarte les voisines, pas son rectangle de repos.
   const hov = hoveredLabelId ? placed.get(hoveredLabelId) : null;
-  const hovBig = hov ? (labelSizeBig.get(hoveredLabelId) || { w: hov.w + 78, h: hov.h * 2 + 4 }) : null;
+  const hovNode = hoveredLabelId ? nodeById.get(hoveredLabelId) : null;
+  const hovBig = hov ? (labelSizeBig.get(hoveredLabelId)
+    || (hovNode ? estimateBigSize(hovNode) : { w: hov.w + 78, h: hov.h * 2 + 4 })) : null;
   labelObjects.forEach(({ obj, card, div }, id) => {
     const p = placed.get(id);
     if (p) {
@@ -9174,6 +9341,7 @@ function updateLabels() {
       div.classList.toggle('selected', selNode && id === selNode.id);
       const isHov = id === hoveredLabelId;
       div.classList.toggle('hovered', isHov);
+      div.classList.toggle('full', !!p.full);   // v2 : texte ouvert au repos (Pass 2)
       // Poussée : une voisine qui empiète sur la boîte survolée s'écarte du côté
       // le plus court, le temps du survol ; sinon elle revient à sa place.
       let dx = 0, dy = 0;
@@ -9188,7 +9356,7 @@ function updateLabels() {
       card.style.transform = (dx || dy) ? `translate(${Math.round(dx)}px, ${Math.round(dy)}px)` : '';
     } else if (obj.visible) {
       const t0 = labelFade.get(id);
-      if (t0 === undefined) { labelFade.set(id, now); div.classList.remove('on', 'hovered'); card.style.transform = ''; }
+      if (t0 === undefined) { labelFade.set(id, now); div.classList.remove('on', 'hovered', 'full'); card.style.transform = ''; }
       else if (now - t0 > LBL_FADE_MS) { obj.visible = false; labelFade.delete(id); }
     }
   });
@@ -9203,10 +9371,45 @@ function updateLabels() {
   //    au passage suivant. Le texte ne change jamais, une mesure suffit.
   placed.forEach((p, id) => {
     const { card } = labelObjects.get(id);
-    if (id === hoveredLabelId) {
+    if (id === hoveredLabelId || p.full) {
       if (!labelSizeBig.has(id)) { const w = card.offsetWidth, h = card.offsetHeight; if (w > 0 && h > 0) labelSizeBig.set(id, { w: w + 2, h: h + 2 }); }
     } else if (!labelSize.has(id)) {
       const w = card.offsetWidth, h = card.offsetHeight; if (w > 0 && h > 0) labelSize.set(id, { w: w + 2, h: h + 2 });
+    }
+  });
+}
+
+// ============================================================ Fondu « cercle → boîte »
+/**
+ * BASCULE FRANCHE — au repos, on a le cercle OU la boîte, jamais
+ * les deux. Quand l'étiquette d'un nœud paraît, sa sphère se fond JUSQU'À ZÉRO ;
+ * quand la boîte s'en va, la sphère revient. Le mesh peut donc être invisible :
+ * sa survolabilité est alors portée par sa BOÎTE (voir firstVisibleHit), car la
+ * carte est `pointer-events:none` et le rayon traverse jusqu'au mesh. Le fondu
+ * part de l'opacité ALLUMÉE (litMain, posée par setNodeVisual) et se relisse à
+ * CHAQUE frame, indépendamment d'updateVisuals qui ne tourne que sur événement.
+ */
+const boxFade = new Map();      // id → 0..1 : part de sphère effacée par sa boîte
+const BOX_FADE_MAX = 1;         // bascule FRANCHE : cercle OU boîte, jamais les deux au repos
+function applyBoxFade() {
+  const ease = 0.22;            // relais court, calé sur le fondu de la carte
+  labelObjects.forEach(({ obj, div }, id) => {
+    // On clé sur la classe `on` (boîte PLEINEMENT présente), pas sur obj.visible :
+    // dès que la boîte commence à partir (perte de `on`, avant son retrait 260 ms
+    // plus tard), la sphère REVIENT — un vrai relais, sans instant où ni cercle
+    // ni boîte ne seraient là.
+    const target = (obj.visible && div.classList.contains('on')) ? 1 : 0;
+    let cur = boxFade.get(id) || 0;
+    if (cur === target && target === 0) return;   // sphère pleine : rien à faire
+    cur += (target - cur) * ease;
+    if (Math.abs(cur - target) < 0.004) cur = target;
+    if (cur === 0) boxFade.delete(id); else boxFade.set(id, cur);
+    const g = nodeById.get(id)?.__group;
+    if (!g || !g.userData.mainMesh || g.userData.litMain === undefined) return;
+    const k = 1 - cur * BOX_FADE_MAX;
+    g.userData.mainMesh.material.opacity = g.userData.litMain * k;
+    if (g.userData.frameMesh && g.userData.litFrame !== undefined) {
+      g.userData.frameMesh.material.opacity = g.userData.litFrame * k;
     }
   });
 }
@@ -9254,6 +9457,7 @@ function animate() {
     if (g.userData.isImage) g.quaternion.copy(camera.quaternion);
   });
 
+  applyBoxFade();  // v2 : la sphère se fond quand sa boîte est là (« cercle → boîte »)
   composer.render();
   labelRenderer.render(scene, camera);
 }
