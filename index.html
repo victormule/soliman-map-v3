@@ -3590,12 +3590,12 @@ function makeArrowRenderer(baseOpacity) {
 const connectorSolid = makeEdgeRenderer('connector', 0.30, true, false);
 const connectorDashed = makeEdgeRenderer('connector', 0.30, true, true);
 const arrowHeads = makeArrowRenderer(0.30);
-// Les fils « même texte » : teinte FROIDE uniforme (bleu acier) + opacité basse.
-// Ils forment une nappe d'écho en arrière-plan, distincte des connecteurs
-// colorés du premier plan — c'est ce qui rend l'entrelacs horizontal lisible
-// sans rien cacher (ils restent là, mais à leur place : derrière).
-const CONCEPT_TINT = new THREE.Color(0x5a7da0);
-const conceptEdges = makeEdgeRenderer('concept', 0.13, true, false, CONCEPT_TINT);
+// Les fils « même texte » reprennent la COULEUR DES POST-ITS (comme la légende),
+// et NON une teinte à part : ce qui les démarque n'est pas leur couleur mais leur
+// FAIBLESSE — une nappe d'écho en retrait (opacité 0,14 contre 0,30 aux
+// connecteurs), doublée de leur routage direct. Le premier plan reste aux traits
+// tracés, l'arrière-plan aux échos, sans leur voler leur couleur.
+const conceptEdges = makeEdgeRenderer('concept', 0.14, true);
 
 /**
  * Un connecteur se dessine désormais en TROIS objets (trait plein, trait
