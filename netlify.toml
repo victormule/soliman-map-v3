@@ -65,13 +65,22 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Code applicatif et données : évoluent à chaque publication.
+# Code applicatif et données : évoluent à chaque publication, et surtout DOIVENT
+# rester en phase avec index.html — qui les importe SANS empreinte de version.
+# Avec un cache ferme (max-age=3600), une mise à jour donnait un index.html frais
+# (lui, toujours revalidé) accolé à des modules PÉRIMÉS servis depuis le cache :
+# le navigateur ne les redemandait même pas. Un lien d'état partagé (#…&view=…)
+# était alors ÉCRIT par le nouveau code d'index.html mais IGNORÉ à la relecture
+# par l'ancien url-state.mjs — « ça capture mais ça ne revient pas ». On aligne
+# donc ces fichiers sur index.html : toujours revalidés. Le coût est minime — une
+# requête conditionnelle qui répond 304 (en-têtes seuls) tant que rien n'a changé,
+# le corps n'étant retéléchargé qu'à une vraie publication.
 [[headers]]
   for = "/*.mjs"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/graph.json"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=0, must-revalidate"
