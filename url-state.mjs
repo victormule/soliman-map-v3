@@ -33,6 +33,13 @@ export function parseStateHash(hash, onWarning = message => console.warn(message
     else if (k === 'tr') out.tr = v;
     else if (k === 'sc') out.sc = v;
     else if (k === 'ax') out.ax = v;
+    else if (k === 'view') {
+      // Cadrage fin : dx,dy,z (décalage droite/haut en fraction du cadre + zoom).
+      const n = v.split(',').map(parseFloat);
+      if (n.length === 3 && n.every(Number.isFinite) && n[2] > 0) {
+        out.view = { dx: n[0], dy: n[1], z: n[2] };
+      } else warn(`[état d’URL] cadrage « view=${v} » mal formé, ignoré.`);
+    }
     else if (k === 'lb' && (v === '0' || v === '1')) out.labels = v !== '0';
     else if (k === 'lbs' && /^\d{1,3}$/.test(v)) out.labelScale = Math.min(100, parseInt(v, 10));
     else if (k === 'qp' && v === '1') out.searchPinned = true;

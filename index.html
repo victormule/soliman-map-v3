@@ -2873,6 +2873,13 @@ const state = {
   searchPinned: false,
   focusAxis: null,     // 'section' | 'regard' — l'axe de la zone mise en lumière…
   focusKey: null,      // …et sa clé (null = aucune)
+  // Le CADRAGE citable (view=) : une lentille posée par-dessus le cadre calculé
+  // automatiquement pour la destination courante — un léger décalage (dx à
+  // droite, dy en haut, en fraction du cadre) et un zoom (z > 1 = plus près).
+  // Réglage RELATIF, jamais une pose absolue : régénérer le graphe déplace les
+  // nœuds, le cadre se recalcule et la lentille « glisse » dessus. N'a de sens
+  // qu'à plat (l'angle y est verrouillé de face) — voir frameCamera/captureView.
+  view: { dx: 0, dy: 0, z: 1 },
   // Le volet d'un GROUPE de légende : { axis, key } ou null. Il accompagne la
   // mise en lumière (setFocus) — l'une ne va pas sans l'autre : on regarde une
   // zone sur la carte ET on lit ce qu'elle contient.
@@ -6315,12 +6322,107 @@ function updatePreviewLine() {
 
 // ============================================================ Camera flight
 let flyAnim = null;
+
+// ─── Cadrage citable (view=) ────────────────────────────────────────────────
+// Le lien cite une DESTINATION (focus, nœud, recherche…) ; `view=` y ajoute une
+// lentille posée PAR-DESSUS le cadre calculé automatiquement : un décalage
+// (dx à droite, dy en haut) et un zoom (z). On cite donc un réglage relatif,
+// jamais une pose absolue — le cadre se recalcule à chaque ouverture et la
+// lentille glisse dessus sans jamais pointer le vide. La lentille ne s'applique
+// et ne se capture qu'À PLAT : en volume l'orbite (l'angle) n'est pas citée.
+const DEFAULT_VIEW = { dx: 0, dy: 0, z: 1 };
+let lastAutoFrame = null;   // { center, dir, autoDist } du dernier cadrage AUTO (non ajusté)
+let restoringUrl = false;   // vrai pendant applyUrlState : la lentille citée ne doit pas être remise à zéro
+let awaitingSettle = false; // un geste vient de finir : on attend que l'amorti se taise pour capturer
+let viewCaptureTimer = null;
+
+function viewIsDefault(v) {
+  return Math.abs(v.dx) < 1e-3 && Math.abs(v.dy) < 1e-3 && Math.abs(v.z - 1) < 1e-3;
+}
+
+// La base ÉCRAN (droite, haut) autour d'une direction de visée : dx suit la
+// droite de l'image, dy son haut, quel que soit l'angle. Elle rejoue
+// exactement le geste de déplacement latéral d'OrbitControls.
+function screenBasis(dir) {
+  const right = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
+  const up = new THREE.Vector3().crossVectors(dir, right).normalize();
+  return { right, up };
+}
+
+/**
+ * Point de passage UNIQUE des cadrages citables (groupe, nœud, vue d'ensemble).
+ * Il mémorise le cadre AUTO calculé (center, dir, autoDist) — c'est de là que la
+ * capture manuelle mesurera l'écart —, puis vole vers ce cadre en y appliquant
+ * la lentille `view` courante (à plat seulement).
+ *
+ * Une navigation programmée démarre TOUJOURS sur le cadre par défaut : sauf
+ * pendant une restauration d'URL (restoringUrl), la lentille est remise à zéro.
+ * Ainsi un clic vers un nouveau nœud ne traîne pas le décalage du précédent, et
+ * l'URL ne se retrouve pas polluée par un `view=` fossile.
+ */
+function frameCamera(center, dir, autoDist, duration, onDone) {
+  // Une navigation ordinaire repart du cadre par défaut ET purge l'URL du
+  // `view=` devenu caduc — certains appelants (selectNode) ont déjà écrit l'URL
+  // AVANT ce vol, d'où ce syncUrl qui remet la forme canonique.
+  if (!restoringUrl && !viewIsDefault(state.view)) { state.view = { ...DEFAULT_VIEW }; syncUrl(); }
+  lastAutoFrame = { center: center.clone(), dir: dir.clone(), autoDist };
+  const v = state.layoutMode === 'miro' ? state.view : DEFAULT_VIEW;
+  const effDist = Math.min(controls.maxDistance, Math.max(controls.minDistance, autoDist / v.z));
+  const { right, up } = screenBasis(dir);
+  const shift = right.multiplyScalar(v.dx * effDist).add(up.multiplyScalar(v.dy * effDist));
+  flyTo(center.clone().add(dir.clone().multiplyScalar(effDist)).add(shift), center.clone().add(shift), duration, onDone);
+}
+
+/**
+ * Mesure la lentille que l'utilisateur vient de poser à la main (déplacement +
+ * zoom) : l'écart entre la caméra réelle et le dernier cadre AUTO. Inverse exact
+ * de frameCamera. Ne s'exécute qu'À PLAT, hors métamorphose, et grave le
+ * résultat dans l'URL — mais UNE seule fois, à la fin du geste (voir plus bas).
+ */
+function captureView() {
+  if (!lastAutoFrame || state.layoutMode !== 'miro' || layoutAnimating) return;
+  const { center, dir, autoDist } = lastAutoFrame;
+  const effDist = camera.position.distanceTo(controls.target);
+  if (effDist < 1e-3) return;
+  const shift = controls.target.clone().sub(center);
+  const { right, up } = screenBasis(dir);
+  const next = {
+    dx: shift.dot(right) / effDist,
+    dy: shift.dot(up) / effDist,
+    z: autoDist / effDist,
+  };
+  const changed = Math.abs(next.dx - state.view.dx) > 1e-3
+    || Math.abs(next.dy - state.view.dy) > 1e-3
+    || Math.abs(next.z - state.view.z) > 1e-3;
+  if (!changed) return;
+  state.view = next;
+  syncUrl();
+}
+
+// La capture se branche sur la FIN du geste, jamais sur chaque image : écrire
+// dans l'URL à 60 Hz appellerait replaceState soixante fois par seconde. On
+// attend donc que le geste ET l'amorti se taisent (débounce sur 'change').
+controls.addEventListener('start', () => { awaitingSettle = false; clearTimeout(viewCaptureTimer); });
+controls.addEventListener('end', () => { awaitingSettle = true; });
+controls.addEventListener('change', () => {
+  // Les 'change' des vols programmés n'ont pas de 'end' préalable : ignorés.
+  // Hors carte à plat, rien à citer (l'orbite auto en volume battrait le
+  // débounce pour rien).
+  if (!awaitingSettle || state.layoutMode !== 'miro') return;
+  clearTimeout(viewCaptureTimer);
+  viewCaptureTimer = setTimeout(() => { awaitingSettle = false; captureView(); }, 260);
+});
+
 function flyTo(targetPos, lookAt, duration = 900, onDone, layoutFlight = false) {
   // Pendant le recul d'une métamorphose, une navigation secondaire (clic sur
   // un nœud, chemin restauré depuis l'URL) ne doit pas annuler le vol dont le
   // callback DÉCLENCHE le déplacement des nœuds. Les autres métamorphoses,
   // elles, passent `layoutFlight=true` et peuvent reprendre la chorégraphie.
   if (layoutAnimating && !layoutFlight) return;
+  // Un vol programmé annule toute capture de cadrage en attente : la caméra ne
+  // bouge plus « à la main », l'écart mesuré serait celui d'un vol en cours.
+  awaitingSettle = false;
+  clearTimeout(viewCaptureTimer);
   const startPos = camera.position.clone();
   const startTarget = controls.target.clone();
   const t0 = performance.now();
@@ -6354,7 +6456,7 @@ function flyToNode(n, onDone) {
   // × fovDistK : à plat, le téléobjectif exige de reculer d'autant pour garder
   // au nœud sa taille apparente ; en volume, fovDistK vaut 1 (rien ne change).
   const dist = (n.kind === 'section' ? 75 : 24) * fovDistK();
-  flyTo(pos.clone().add(approachDir().multiplyScalar(dist)), pos, 950, onDone);
+  frameCamera(pos, approachDir(), dist, 950, onDone);
 }
 
 // Viseur temporaire de « y aller » : il vit en espace écran, suit le nœud
@@ -6411,7 +6513,7 @@ function flyToGroup(nodesArr, onDone) {
   nodesArr.forEach(n => box.expandByPoint(n.__group.position));
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3()).length();
-  flyTo(center.clone().add(approachDir().multiplyScalar(Math.max(35, size * 0.65))), center, 1000, onDone);
+  frameCamera(center, approachDir(), Math.max(35, size * 0.65), 1000, onDone);
 }
 /**
  * Les bornes de la scène ne dépendent que des POSITIONS des nœuds — pas de
@@ -6538,7 +6640,7 @@ function overviewDir() {
 function flyToOverview(onDone) {
   const { center, box } = currentBounds();
   applyModeCameraLock();
-  flyTo(center.clone().add(overviewDir().multiplyScalar(distanceToFit(box))), center, 1000, onDone);
+  frameCamera(center, overviewDir(), distanceToFit(box), 1000, onDone);
   updateFog();
 }
 
@@ -9555,6 +9657,12 @@ function encodeStateHash() {
   const lbs = Math.round((state.proximityScale - 0.15) / 1.85 * 100);
   if (lbs !== 46) parts.push('lbs=' + lbs);
   if (state.focusKey) parts.push('focus=' + state.focusAxis + ':' + encodeURIComponent(state.focusKey));
+  // Le cadrage fin, seulement s'il s'écarte du cadre auto. Trois nombres courts
+  // (dx, dy, zoom) arrondis au millième : « un peu à droite, plus près ».
+  if (!viewIsDefault(state.view)) {
+    const r = x => String(Math.round(x * 1000) / 1000);
+    parts.push('view=' + r(state.view.dx) + ',' + r(state.view.dy) + ',' + r(state.view.z));
+  }
   // Une recherche VALIDÉE (volet ouvert), pas la saisie flottante — celle-ci
   // n'est qu'un état de passage, rien à citer avant qu'on ait pressé Entrée.
   if (state.searchCommitted) {
@@ -9599,6 +9707,11 @@ function syncUrl() {
  * que deux animations concurrentes s'annulent à mi-course.
  */
 function applyUrlState(u, onDone) {
+  // Pendant toute la restauration, la lentille citée est protégée : frameCamera
+  // ne la remet pas à zéro comme il le ferait pour une navigation ordinaire. On
+  // la pose ici, AVANT le cadrage final qui l'appliquera au cadre auto.
+  restoringUrl = true;
+  if (u.view) state.view = { dx: u.view.dx, dy: u.view.dy, z: u.view.z };
   const applyDestination = () => {
   // L'étendue AVANT tout le reste : elle décide du vocabulaire des axes, des
   // comptes et de ce qui est visible — restaurée après, elle balaierait la
@@ -9705,6 +9818,7 @@ function applyUrlState(u, onDone) {
       updateVisuals();
     }
     const settled = () => {
+      restoringUrl = false;   // la restauration est finie : la lentille redevient éditable/effaçable
       syncUrl();   // forme canonique : les identifiants introuvables retombent
       if (onDone) onDone();
     };
