@@ -3475,6 +3475,12 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
         blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, depthWrite: false,
       });
   const lines = new THREE.LineSegments(geo, mat);
+  // Géométrie réécrite à CHAQUE image (routage recalculé en recentrage) sans
+  // recalcul de sphère englobante, figée sur la première pose : à certaines
+  // positions caméra le frustum ne la rencontrait plus et Three éliminait TOUT
+  // le paquet d'un coup (le « saut » des liens en recentrage). Même remède que
+  // les flèches et les lignes de chemin : on sort ces objets légers du test.
+  lines.frustumCulled = false;
   scene.add(lines);
   // Deux couleurs de travail, réutilisées. `update()` tourne à chaque image
   // pendant une transition de disposition : y construire deux THREE.Color par
@@ -3517,6 +3523,17 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
         col.fill(0, o, o + V * 3);
         continue;
       }
+      // Le lien suit l'ATTÉNUATION de ses nœuds : un fil vers un nœud éteint
+      // (sélection, recherche, faible pertinence lexicale) s'éteint AVEC lui, au
+      // lieu de rester tendu vers un point invisible — c'est ce qui donnait des
+      // « liens sans nœuds » (lexical + recherche, recherche seule…). On lit
+      // litMain, l'opacité ALLUMÉE décidée par updateVisuals (insensible au fondu
+      // de sphère des étiquettes) ; normalisée par l'opacité de repos (0.85), la
+      // vue normale reste intacte, seuls les nœuds atténués tirent leur lien
+      // vers le noir (invisible sur le fond sombre).
+      const _la = a.userData.litMain, _lb = b.userData.litMain;
+      const vis = visibility * Math.min(1,
+        Math.min(_la === undefined ? 1 : _la, _lb === undefined ? 1 : _lb) / 0.85);
       // ── Les sommets, tous calculés par routePointAt : c'est la même fonction
       //    qui sert aux pointes et aux chemins, et c'est ce qui garantit qu'ils
       //    suivent exactement le même trajet.
@@ -3543,9 +3560,9 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
           // six sommets, un dégradé calculé aux seules extrémités se serait
           // découpé en cinq aplats.
           const t = k / ROUTE_SEGS;
-          col[o+v*3]   = (_ca.r + (_cb.r - _ca.r) * t) * visibility;
-          col[o+v*3+1] = (_ca.g + (_cb.g - _ca.g) * t) * visibility;
-          col[o+v*3+2] = (_ca.b + (_cb.b - _ca.b) * t) * visibility;
+          col[o+v*3]   = (_ca.r + (_cb.r - _ca.r) * t) * vis;
+          col[o+v*3+1] = (_ca.g + (_cb.g - _ca.g) * t) * vis;
+          col[o+v*3+2] = (_ca.b + (_cb.b - _ca.b) * t) * vis;
           if (dd) dd[i*V + v] = run + (end ? Math.hypot(_px[k]-_px[k-1], _py[k]-_py[k-1], _pz[k]-_pz[k-1]) : 0);
         }
         // Le pointillé se mesure sur la LONGUEUR PARCOURUE depuis le départ du
