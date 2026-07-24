@@ -9071,6 +9071,11 @@ function updateLabels() {
   // ── Les candidates, par priorité : qui a le plus le droit de parler.
   const camPos = camera.position;
   const scale = state.proximityScale;
+  // Curseur À FOND : on montre TOUT ce qui est dans le cadre (et passe les
+  // filtres), quitte à ce que des boîtes se chevauchent — le survol en ramène
+  // une au premier plan pour la lire. En dessous, le poseur reste soigneux
+  // (aucun chevauchement) et c'est le zoom qui découvre le texte.
+  const showAll = scale > 1.9;
   const candidates = [];   // { id, prio, ord } — tri stable (prio, ord, id)
   const seen = new Set();
   const propose = (id, prio, ord) => {
@@ -9096,7 +9101,8 @@ function updateLabels() {
       // le budget est plein, il va au nœud qui mérite le plus son étiquette, non
       // au plus proche du nez de la caméra.
       .sort((a, b) => (a.d / a.seuil) - (b.d / b.seuil));
-    const budget = Math.max(0, maxLabels - seen.size);
+    // À fond, aucun plafond : toutes les candidates du cadre parlent.
+    const budget = showAll ? withDist.length : Math.max(0, maxLabels - seen.size);
     withDist.slice(0, budget).forEach((o, i) => propose(o.g.userData.node.id, 3, i));
   }
   candidates.sort((u, v) => u.prio - v.prio || u.ord - v.ord
@@ -9140,8 +9146,9 @@ function updateLabels() {
         && rect.y0 < k.y1 + LBL_PAD && rect.y1 > k.y0 - LBL_PAD) { free = false; break; }
     }
     // Sélection (prio 0) et boîte survolée passent MÊME en chevauchant ; les
-    // autres se taisent quand la place manque.
-    if (!free && c.prio > 0 && !hovered) continue;
+    // autres se taisent quand la place manque — SAUF curseur à fond, où l'on
+    // montre tout, chevauchements assumés.
+    if (!free && c.prio > 0 && !hovered && !showAll) continue;
     keptRects.push(rect);
     placed.set(c.id, { sx, sy, w: s.w, h: s.h });
     if (hovered) hoveredStillPlaced = true;
