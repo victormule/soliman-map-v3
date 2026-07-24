@@ -100,10 +100,13 @@ réel ; si vous le remplacez, mettez-les à jour en même temps.
 
 - **Three.js non minifié** (`vendor/three.module.js`, ~1,3 Mo) : passer à un build
   minifié / tree‑shaké réduirait fortement le premier chargement.
-- **Polices Google** chargées depuis `fonts.googleapis.com` : les auto‑héberger
-  supprimerait la dépendance externe (performance + confidentialité RGPD).
 - **Textures** toutes chargées au démarrage : un chargement différé allégerait
   l'ouverture.
+
+Les **polices sont désormais auto‑hébergées** (`/fonts`, woff2 latin + latin‑ext,
+`@font-face` inlinés dans le `<head>`) : plus de requête bloquante ni de dépendance
+externe, la police du titre (élément LCP) est préchargée. La CSP est donc `font-src
+'self'` et ne référence plus `fonts.googleapis.com` / `fonts.gstatic.com`.
 
 ---
 

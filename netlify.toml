@@ -22,9 +22,9 @@
     #   script-src 'self' 'unsafe-inline' : l'application est un <script type="module">
     #     inline (choix d'architecture assumé) + les modules ES locaux. Pas de
     #     'unsafe-eval' : ni le code ni Three.js n'utilisent eval/new Function.
-    #   style-src : le <style> inline, les attributs style="…", et la feuille
-    #     Google Fonts (fonts.googleapis.com).
-    #   font-src : les fichiers de police (fonts.gstatic.com).
+    #   style-src : le <style> inline et les attributs style="…" — aucun hôte externe.
+    #   font-src 'self' : les polices sont AUTO-HÉBERGÉES sous /fonts (woff2), plus
+    #     aucune dépendance à fonts.googleapis.com / fonts.gstatic.com.
     #   img-src 'self' data: : les textures et images viennent de assets/ ; data:
     #     couvre d'éventuelles images encodées.
     #   connect-src 'self' : le seul fetch est ./graph.json.
@@ -35,7 +35,7 @@
     # vérifier qu'aucune violation n'apparaît sur un parcours normal, PUIS retirer
     # le suffixe "-Report-Only" ci-dessous (→ "Content-Security-Policy") et
     # redéployer pour la rendre effective.
-    Content-Security-Policy-Report-Only = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; upgrade-insecure-requests"
+    Content-Security-Policy-Report-Only = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; upgrade-insecure-requests"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "SAMEORIGIN"
     Referrer-Policy = "strict-origin-when-cross-origin"
