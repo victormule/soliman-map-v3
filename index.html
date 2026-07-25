@@ -8662,18 +8662,33 @@ function buildStats() {
   // Une répartition (cliquable : mise en lumière). Le pourcentage se rapporte au
   // TOTAL passé par l'appelant (corpus, hors du tronc, tronc…) — jamais à un
   // dénominateur implicite qui mentirait.
+  //
+  // Les pourcentages somment à 100 EXACTEMENT (méthode du plus fort reste,
+  // Hare-Niemeyer) : arrondir chaque ligne indépendamment (Math.round) peut
+  // dériver à 99 ou 101 — une catégorie exhaustive dont les lignes se lisent
+  // « ça devrait faire 100 » ne doit jamais démentir le lecteur qui additionne.
+  // On part des parties entières, puis on distribue les points restants aux
+  // plus grands restes, dans l'ordre — la déviation par ligne reste minimale.
   const distList = (items, total, host) => {
     const max = Math.max(1, ...items.map(i => i.count));
+    const t = Math.max(1, total);
+    const raw = items.map(it => 100 * it.count / t);
+    const floors = raw.map(Math.floor);
+    const remainder = Math.round(100 - floors.reduce((a, b) => a + b, 0));
+    const order = items.map((_, i) => i).sort((a, b) => (raw[b] - floors[b]) - (raw[a] - floors[a]));
+    const pct = floors.slice();
+    for (let k = 0; k < remainder && k < order.length; k++) pct[order[k]]++;
     const wrap = document.createElement('div');
-    [...items].sort((a, b) => b.count - a.count).forEach(it => {
-      const row = document.createElement('div'); row.className = 'st-row';
-      row.innerHTML = `<span class="dot" style="color:${it.color};background:${it.color};box-shadow:none"></span>` +
-        `<span class="st-name" title="${escHtml(it.name)}">${escHtml(it.name)}</span>` +
-        `<span class="st-bar"><i style="width:${Math.round(100 * it.count / max)}%;background:${it.color}"></i></span>` +
-        `<span class="st-n">${it.count} · ${Math.round(100 * it.count / Math.max(1, total))}%</span>`;
-      row.addEventListener('click', it.go);
-      wrap.appendChild(row);
-    });
+    items.map((it, i) => ({ ...it, pct: pct[i] }))
+      .sort((a, b) => b.count - a.count).forEach(it => {
+        const row = document.createElement('div'); row.className = 'st-row';
+        row.innerHTML = `<span class="dot" style="color:${it.color};background:${it.color};box-shadow:none"></span>` +
+          `<span class="st-name" title="${escHtml(it.name)}">${escHtml(it.name)}</span>` +
+          `<span class="st-bar"><i style="width:${Math.round(100 * it.count / max)}%;background:${it.color}"></i></span>` +
+          `<span class="st-n">${it.count} · ${it.pct}%</span>`;
+        row.addEventListener('click', it.go);
+        wrap.appendChild(row);
+      });
     (host || el).appendChild(wrap);
   };
 
