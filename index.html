@@ -630,13 +630,11 @@
   #sp-close:hover{ color:var(--ink); border-color:var(--border-strong); }
   .sp-kicker{ font-family: var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color: var(--gold); opacity:.85; }
   #sp-query{ font-family: var(--serif); font-weight:400; font-size: 19px; line-height:1.4; color: var(--ink); margin: 5px 40px 12px 0; word-break: break-word; }
-  /* Le geste demandé : épingler les étiquettes de CE terme (recherche) ou de
-   * CETTE zone (volet de groupe) sur la carte — même mécanique que les épingles
-   * de la légende (updateLabels les lit toutes) : mêmes règles de pose et de
-   * dimension que « Étiquettes des post-its ». */
-  #sp-pin, #gp-pin{ display:flex; align-items:center; gap:7px; font-size:12px; color: var(--ink-dim); cursor:pointer; }
-  #sp-pin input, #gp-pin input{ accent-color: var(--gold); width:13px; height:13px; cursor:pointer; }
-  #gp-pin{ margin-top:11px; }
+  /* Le geste demandé : épingler les étiquettes de CE terme sur la carte —
+   * même mécanique que les épingles de la légende (updateLabels les lit
+   * toutes deux), mais pour un ensemble de nœuds, pas une catégorie. */
+  #sp-pin{ display:flex; align-items:center; gap:7px; font-size:12px; color: var(--ink-dim); cursor:pointer; }
+  #sp-pin input{ accent-color: var(--gold); width:13px; height:13px; cursor:pointer; }
   #sp-body{ padding: 16px 22px 18px; overflow-y:auto; flex:1; min-height:0; }
   /* Répartition selon l'axe COURANT (« Coloré par ») : même lecture que la
    * légende, mais bornée à ce que la recherche a trouvé — pas de case à
@@ -1441,7 +1439,6 @@
       <div class="sp-kicker" id="gp-kicker">groupe</div>
       <div id="gp-title"></div>
       <div id="gp-sub"></div>
-      <label id="gp-pin"><input type="checkbox" id="gp-pin-check"><span>🏷 étiqueter ces post‑its sur la carte</span></label>
     </div>
     <div id="gp-body">
       <!-- L'en-tête de présentation d'une zone « Quoi ? » : les post-its qui
@@ -4049,7 +4046,12 @@ function buildLegendRow(axis, { key, name, color, count, hint, group, onGo }) {
     openGroupPanel(axis, key);   // lire le groupe ET le voir : un seul geste
   });
   const pinBtn = row.querySelector('.pin-btn');
-  pinBtn.addEventListener('click', () => setCategoryPinned(axis, key, !g.pinned.has(key)));
+  pinBtn.addEventListener('click', () => {
+    if (g.pinned.has(key)) { g.pinned.delete(key); pinBtn.classList.remove('pinned'); }
+    else { g.pinned.add(key); pinBtn.classList.add('pinned'); }
+    updatePinInfo();
+    syncUrl();   // les épingles se citent (pin.axe=…), comme les filtres
+  });
   g.listEl.appendChild(row);
   g.rows.set(key, row);
   return row;
@@ -4209,27 +4211,6 @@ function updatePinInfo() {
   miniPinEl.textContent = total;
 }
 
-/**
- * Épingler / désépingler les étiquettes d'une CATÉGORIE (axe + clé). Un seul
- * mécanisme pour les deux gestes qui le demandent — le 🏷 de la ligne de
- * légende et la case « étiqueter ces post-its » du volet de zone — de sorte
- * qu'ils restent d'accord, et que les étiquettes suivent les MÊMES règles de
- * pose et de dimension que « Étiquettes des post-its » (updateLabels lit ces
- * épingles comme les autres).
- */
-function setCategoryPinned(axis, key, on) {
-  const g = LEGEND[axis];
-  if (on) g.pinned.add(key); else g.pinned.delete(key);
-  const row = g.rows.get(key);
-  if (row) row.querySelector('.pin-btn').classList.toggle('pinned', on);
-  // La case du volet de zone suit, si ce volet montre justement cette catégorie.
-  if (state.groupPanel && state.groupPanel.axis === axis && state.groupPanel.key === key) {
-    const cb = document.getElementById('gp-pin-check'); if (cb) cb.checked = on;
-  }
-  updateLabels();
-  updatePinInfo();
-  syncUrl();   // les épingles se citent (pin.axe=…), comme les filtres
-}
 document.getElementById('pin-clear').addEventListener('click', () => {
   AXIS_KEYS.forEach(ax => {
     LEGEND[ax].pinned.clear();
@@ -4237,7 +4218,6 @@ document.getElementById('pin-clear').addEventListener('click', () => {
   });
   state.searchPinned = false;
   const spPin = document.getElementById('sp-pin-check'); if (spPin) spPin.checked = false;
-  const gpPin = document.getElementById('gp-pin-check'); if (gpPin) gpPin.checked = false;
   updateLabels();
   updatePinInfo();
   syncUrl();   // plus d'épingles : l'URL cesse de les citer
@@ -5205,8 +5185,6 @@ function renderGroupPanel() {
   document.getElementById('gp-sub').textContent =
     `${nodes.length} post‑it${nodes.length > 1 ? 's' : ''} · ${lies} lien${lies > 1 ? 's' : ''} · triés par degré`
     + (meta.hint ? ` · ${meta.hint}` : '');
-  // La case « étiqueter ces post-its » reflète l'épingle de CETTE catégorie.
-  document.getElementById('gp-pin-check').checked = LEGEND[g.axis].pinned.has(g.key);
 
   // En-tête de PRÉSENTATION (zones « Quoi ? » seulement) : ce que le bloc
   // affichait comme présentation sur le tableau — sorti de la carte, remonté
@@ -8067,11 +8045,6 @@ document.getElementById('sp-pin-check').addEventListener('change', (e) => {
   updatePinInfo();
   syncUrl();
 });
-document.getElementById('gp-pin-check').addEventListener('change', (e) => {
-  const g = state.groupPanel;
-  if (!g) return;
-  setCategoryPinned(g.axis, g.key, e.target.checked);
-});
 
 // ============================================================ Modal / reset / mobile
 const modalOverlay = document.getElementById('modal-overlay');
@@ -8743,36 +8716,45 @@ function buildStats() {
     // groupes d'UN axe. Pas d'agrégat « Tronc » : le tronc se lit par ses
     // sections, jamais comme un bloc unique.
     const quoiFold = fold('Quoi ?', { sub: 'par section, aux deux échelles', parent: rep, cls: 'st-sub-fold' });
+    // Un clic ouvre AUSSI le volet de la zone (openGroupPanel) — exactement ce
+    // que fait un clic sur le nom d'une catégorie dans la légende : mettre en
+    // lumière sur la carte ET déplier le panneau correspondant.
     one('Sections des branches', 'les treize blocs titrés',
-      'Cliquer met la section en lumière sur la carte.',
+      'Cliquer met la section en lumière sur la carte et ouvre son panneau.',
       SECTIONS.filter(s => s.id !== 's_frame').map(s => ({
         name: s.name, color: s.color, count: HC.filter(n => n.section === s.id).length,
         go: () => {
           closeStats(); setTab('section'); setFocus('section', s.id);
+          openGroupPanel('section', s.id);
           flyToGroup(HC.filter(n => n.section === s.id));
         },
       })), HC.length, quoiFold);
 
+    // « Sans section » = les post-its du tronc sans sous-thème : leur clé d'axe
+    // est `s_frame` (AXES.section.keyOf retombe sur n.section), pas NONE_KEY —
+    // c'est cette clé-là que la légende et openGroupPanel connaissent.
     one('Sections du tronc', 'les onze grappes de couleur',
-      `Les ${FR.length} post-its du tronc, classés par la couleur de leur grappe — c'est ce que « Quoi ? » affiche quand on regarde le tronc. Cliquer y conduit et met la section en lumière.`,
+      `Les ${FR.length} post-its du tronc, classés par la couleur de leur grappe — c'est ce que « Quoi ? » affiche quand on regarde le tronc. Cliquer y conduit, met la section en lumière et ouvre son panneau.`,
       SOUSTHEMES.map(t => ({ key: t.key, name: t.name, color: t.color }))
-        .concat([{ key: NONE_KEY, name: 'Sans section', color: NEUTRAL_REGARD }])
+        .concat([{ key: 's_frame', name: 'Sans section', color: NEUTRAL_REGARD }])
         .map(t => ({
           name: t.name, color: t.color,
-          count: FR.filter(n => (n.sousTheme || NONE_KEY) === t.key).length,
+          count: FR.filter(n => (n.sousTheme || 's_frame') === t.key).length,
           go: () => {
             closeStats(); setScope('tronc'); setTab('section'); setFocus('section', t.key);
-            const cat = FR.filter(n => (n.sousTheme || NONE_KEY) === t.key);
+            openGroupPanel('section', t.key);
+            const cat = FR.filter(n => (n.sousTheme || 's_frame') === t.key);
             if (cat.length) flyToGroup(cat);
           },
         })), FR.length, quoiFold);
 
     one('Qui ?', 'les regards',
-      `Hors du tronc (${HC.length} post-its) : dans le tronc, la couleur désigne une section, pas un regard. Cliquer met le regard en lumière sur la carte.`,
+      `Hors du tronc (${HC.length} post-its) : dans le tronc, la couleur désigne une section, pas un regard. Cliquer met le regard en lumière sur la carte et ouvre son panneau.`,
       regItems.map(r => ({
         name: r.name, color: r.color, count: HC.filter(n => regardKeyOf(n) === r.key).length,
         go: () => {
           closeStats(); setTab('regard'); setFocus('regard', r.key);
+          openGroupPanel('regard', r.key);
           // On cadre EXACTEMENT ce que la ligne compte : le hors-tronc, appareil
           // éditorial exclu (sinon on emmène sur tout le tronc
           // que le sous-titre venait d'exclure).
@@ -8782,12 +8764,13 @@ function buildStats() {
       })), HC.length);
 
     one('Quand ?', 'les quatre temps',
-      "Les quatre temps du tableau, relevés par l'horodatage de Miro — la seule donnée présente sur la totalité des post-its. Cliquer met la période en lumière sur la carte.",
+      "Les quatre temps du tableau, relevés par l'horodatage de Miro — la seule donnée présente sur la totalité des post-its. Cliquer met la période en lumière sur la carte et ouvre son panneau.",
       PERIODES.map(p => ({
         name: `${p.name} · ${p.hint.split(' · ')[0]}`, color: p.color,
         count: CORPUS.filter(n => n.periode === p.key).length,
         go: () => {
           closeStats(); setTab('quand'); setFocus('quand', p.key);
+          openGroupPanel('quand', p.key);
           const cat = CORPUS.filter(n => n.periode === p.key);
           if (cat.length) flyToGroup(cat);
         },
@@ -8797,12 +8780,13 @@ function buildStats() {
     // dont une classe EST l'appareil : l'écarter viderait sa propre ligne. Le
     // sous-titre le dit, plutôt que de laisser un total qui ne tombe pas juste.
     one('Comment ?', 'la forme',
-      `Sous quelle forme la chose est dite. Seule répartition calculée sur les ${LEAVES.length} nœuds de la carte, appareil du tableau compris : il y forme une classe. Quatre post-its sur cinq sont de simples notes — décocher « Note » sur la carte montre le reste.`,
+      `Sous quelle forme la chose est dite. Seule répartition calculée sur les ${LEAVES.length} nœuds de la carte, appareil du tableau compris : il y forme une classe. Cliquer met la forme en lumière et ouvre son panneau — décocher « Note » sur la carte montre le reste.`,
       FORMES.map(f => ({
         name: f.name, color: f.color,
         count: LEAVES.filter(n => n.forme === f.key).length,
         go: () => {
           closeStats(); setTab('comment'); setFocus('comment', f.key);
+          openGroupPanel('comment', f.key);
           const cat = LEAVES.filter(n => n.forme === f.key);
           if (cat.length) flyToGroup(cat);
         },
@@ -8811,12 +8795,13 @@ function buildStats() {
     // Comme « Comment ? », cet axe classe TOUTES les feuilles : « aucun trait
     // tracé » est une réponse, pas une absence de donnée.
     one('Pourquoi ?', 'la place dans le raisonnement',
-      `Lue dans le sens des flèches tracées à la main. Les deux dernières classes disent ce que le tableau NE dit pas : un post-it relié sans flèche n'est pas hors du raisonnement, et un post-it sans trait n'a simplement jamais été relié. Calculée sur les ${LEAVES.length} nœuds de la carte.`,
+      `Lue dans le sens des flèches tracées à la main. Les deux dernières classes disent ce que le tableau NE dit pas : un post-it relié sans flèche n'est pas hors du raisonnement, et un post-it sans trait n'a simplement jamais été relié. Cliquer met la classe en lumière et ouvre son panneau.`,
       FLOW_DEFS.map(f => ({
         name: f.name, color: f.color,
         count: LEAVES.filter(n => n.__flow === f.key).length,
         go: () => {
           closeStats(); setTab('pourquoi'); setFocus('pourquoi', f.key);
+          openGroupPanel('pourquoi', f.key);
           const cat = LEAVES.filter(n => n.__flow === f.key);
           if (cat.length) flyToGroup(cat);
         },
