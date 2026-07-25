@@ -7420,16 +7420,11 @@ function enterEgo(node, onDone) {
   state.egoDist = info.dist;
   state.egoMaxD = info.maxD;
   state.egoDepth = info.maxD; // « tout » par défaut : toute la composante
-  // La fiche se FERME (pas seulement repliée) : le recentrage devient ce
-  // qu'on regarde, et une poignée qui rouvre la fiche de départ n'a plus lieu
-  // d'être une fois la géographie changée. `panel.classList.remove` seul
-  // (sans passer par closePanel) : les autres retombées d'une fermeture
-  // (updateVisuals, syncUrl, bumpFollow) sont déjà assurées plus bas dans
-  // cette fonction, les rejouer ici serait redondant.
-  if (state.selectedId === node.id && panel.classList.contains('open')) {
-    panel.classList.remove('open', 'folded', 'mode-search', 'mode-group');
-    state.selectedId = null;
-  }
+  // La sélection, s'il y en avait une, a déjà été QUITTÉE par l'appelant
+  // interactif (le bouton « ⊚ Recentrer ici », voir egoFromBtn) : recentrer,
+  // c'est cesser de lire un nœud pour regarder une géographie. enterEgo ne
+  // touche donc pas lui-même à la fiche — il est aussi appelé au rejeu d'une
+  // URL, où aucune fiche n'est ouverte.
   // Le recentrage est une OPTION de la disposition courante : les onglets
   // Cartographie/Constellation restent maîtres, la ligne « ⊚ recentré sur … »
   // s'affiche sous eux, avec sa sortie.
@@ -7520,7 +7515,13 @@ function updateEgoBar() {
 
 egoFromBtn.addEventListener('click', () => {
   const n = nodeById.get(state.selectedId);
-  if (n) enterEgo(n);
+  if (!n) return;
+  // On SORT de la sélection (la fiche se ferme comme au ✕), puis on recentre :
+  // recentrer, ce n'est plus lire un nœud, c'est regarder la géographie autour
+  // de lui. closePanel remet la carte à plat (fin de l'estompage « voisinage
+  // de la fiche ») AVANT qu'enterEgo n'en capture l'état pour sa métamorphose.
+  if (state.selectedId) closePanel();
+  enterEgo(n);
 });
 document.getElementById('ego-close').addEventListener('click', () => exitSpatialFocus());
 document.getElementById('ego-option-exit').addEventListener('click', () => exitSpatialFocus());
