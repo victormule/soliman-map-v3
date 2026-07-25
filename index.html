@@ -7420,11 +7420,15 @@ function enterEgo(node, onDone) {
   state.egoDist = info.dist;
   state.egoMaxD = info.maxD;
   state.egoDepth = info.maxD; // « tout » par défaut : toute la composante
-  // Le post-it reste SÉLECTIONNÉ : le recentrage change la géographie, pas ce
-  // que l'on est en train de lire. On libère seulement l'écran en repliant sa
-  // fiche ; la poignée permet de la retrouver pendant et après l'animation.
+  // La fiche se FERME (pas seulement repliée) : le recentrage devient ce
+  // qu'on regarde, et une poignée qui rouvre la fiche de départ n'a plus lieu
+  // d'être une fois la géographie changée. `panel.classList.remove` seul
+  // (sans passer par closePanel) : les autres retombées d'une fermeture
+  // (updateVisuals, syncUrl, bumpFollow) sont déjà assurées plus bas dans
+  // cette fonction, les rejouer ici serait redondant.
   if (state.selectedId === node.id && panel.classList.contains('open')) {
-    setDetailPanelFolded(true);
+    panel.classList.remove('open', 'folded', 'mode-search', 'mode-group');
+    state.selectedId = null;
   }
   // Le recentrage est une OPTION de la disposition courante : les onglets
   // Cartographie/Constellation restent maîtres, la ligne « ⊚ recentré sur … »
