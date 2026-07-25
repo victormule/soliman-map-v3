@@ -47,7 +47,7 @@ const OUT = join(HERE, 'graph.json');
  * sont les enfants du cadre Miro, pas un voisinage.
  */
 const SECTIONS = [
-  { id: 's_frame',  name: "Vue d'ensemble",                          color: '#d9c9a3', anchors: null },
+  { id: 's_frame',  name: "Tronc",                                   color: '#d9c9a3', anchors: null },
   { id: 'b_cas',    name: "Cas pratiques d'autres horizons",         color: '#7fa398', anchors: [[4400, 150], [5800, -285], [4300, 450]] },
   { id: 'b_restit', name: "Restituer le corps à l'État syrien",      color: '#56b3a7', anchors: [[4500, -900], [5300, -1050]] },
   { id: 'b_desoc',  name: "(Dé)socialisation du corps",              color: '#9b7fd4', anchors: [[4900, -2900], [5730, -2800]] },
@@ -207,7 +207,7 @@ const QUOTED_SPAN = /[«“"]\s*([^«»“”"]{3,})\s*[»”"]/g;
  * l'archive n'autorise pas à le publier. `n.date` est donc tronquée au jour.
  */
 const PERIODES = [
-  { key: 't1', name: '1re période', color: '#6b5fa0', until: '2025-10-28', hint: 'le canevas · 23 → 27 octobre 2025, avant l\'atelier' },
+  { key: 't1', name: '1re période', color: '#6b5fa0', until: '2025-10-28', hint: 'le tronc · 23 → 27 octobre 2025, avant l\'atelier' },
   { key: 't2', name: '2e période',  color: '#c4566e', until: '2025-10-30', hint: 'l\'atelier · 28 et 29 octobre 2025, à plusieurs mains' },
   { key: 't3', name: '3e période',  color: '#e09354', until: '2026-02-01', hint: 'les reprises · novembre 2025 → janvier 2026, retours espacés' },
   { key: 't4', name: '4e période',  color: '#f0dcae', until: null,         hint: 'l\'enquête · février 2026, les retours ESAA et les derniers apports' },

@@ -322,9 +322,9 @@
      l'emportait, et le tireté ne se voyait jamais. Même forme que `.recorded`
      ci-dessous, pour la même raison. */
   .pair .tb.derived-tab{ border-style: dashed; }
-  /* « Sous-thème » ne classe QUE le canevas : il raffine « Quoi ? » au lieu
+  /* La section du tronc ne classe QUE le tronc : elle raffine « Quoi ? » au lieu
      de lui faire concurrence. Le retrait et le ↳ le disent sans un mot — sans
-     quoi il paraissait un quatrième pair des questions, ce qu'il n'est pas. */
+     quoi elle paraissait un quatrième pair des questions, ce qu'elle n'est pas. */
   .pair.axes .tb.sub{ margin-left:16px; }
   /* Sous-légende d'une famille d'axes. TROIS provenances, trois bordures :
      plein = les auteur·rices l'ont posé · POINTILLÉ = l'archive l'a relevé
@@ -947,6 +947,19 @@
   .md-step{ position:relative; padding: 2px 0 0 44px; margin: 26px 0; }
   .md-step::before{ content:''; position:absolute; left:13px; top:6px; bottom:2px; width:1px; background: linear-gradient(var(--border-strong), transparent); }
   .md-n{ position:absolute; left:0; top:2px; font-family: var(--mono); font-size:9.5px; letter-spacing:.04em; color: var(--gold); opacity:.9; }
+
+  /* La Méthode en SOMMAIRE déroulant : chaque § est un <details>. Fermé, la
+     page n'est qu'une table des matières ; on déplie ce qu'on veut lire — même
+     principe que le panneau d'analyse. */
+  details.md-step{ margin: 12px 0; padding-top: 0; }
+  details.md-step > summary{ list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:9px; padding: 4px 0; }
+  details.md-step > summary::-webkit-details-marker{ display:none; }
+  details.md-step > summary::before{ content:'▸'; color:var(--ink-dim); font-size:10px; line-height:1; }
+  details.md-step[open] > summary::before{ content:'▾'; }
+  details.md-step[open] > summary{ margin-bottom: 8px; }
+  .md-step .md-h{ font-family: var(--serif); font-weight:500; font-size:16px; color: var(--ink); }
+  details.md-step > summary:hover .md-h,
+  details.md-step > summary:hover::before{ color: var(--gold); }
   .md-sub{ font-family: var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color: var(--ink-faint); margin: 14px 0 7px; }
 
   /* Une formule se lit d'un bloc : centrée, respirée, en chasse fixe. */
@@ -1047,6 +1060,39 @@
   .xtab td.diag{ font-weight:600; background: rgba(255,255,255,0.03); }
   .xtab td.blank{ cursor:default; border-color:transparent; }
   .xtab td.blank:hover{ outline:none; }
+  /* Chaque ligne du croisement porte désormais sa pastille de couleur, comme
+     les répartitions — on lit la catégorie sans remonter à l'en-tête. */
+  .xtab .rowname .dot{ margin-right:6px; vertical-align:middle; }
+
+  /* ---------- le sommaire déroulable ----------
+   * Tout le panneau d'analyse est une pile de <details> : on n'affiche que ce
+   * qu'on déplie, pas tout d'un coup. Un seul volet (« Corpus ») s'ouvre au
+   * chargement ; le reste attend le clic. */
+  #stats .st-fold{ border:1px solid var(--border); border-radius:10px; margin:10px 0 0; overflow:hidden; }
+  #stats .st-fold[open]{ background:rgba(255,255,255,0.015); }
+  #stats .st-fold > summary{ list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:10px;
+    padding:11px 14px; font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
+  #stats .st-fold > summary::-webkit-details-marker{ display:none; }
+  #stats .st-fold > summary::before{ content:'▸'; color:var(--ink-dim); font-size:9px; }
+  #stats .st-fold[open] > summary::before{ content:'▾'; }
+  #stats .st-fold > summary:hover{ color:var(--ink); }
+  #stats .st-fold > summary .st-fold-c{ margin-left:auto; text-transform:none; letter-spacing:0; font-size:10px; color:var(--ink-faint); }
+  #stats .st-fold-body{ padding:2px 14px 14px; }
+  #stats .st-fold-body > .st-sub:first-child{ margin-top:6px; }
+  /* Répartitions imbriquées : un cran plus discret, filet à gauche. */
+  #stats .st-sub-fold{ border:none; border-left:1px solid var(--border); border-radius:0; margin:6px 0 0; background:none; }
+  #stats .st-sub-fold > summary{ color:var(--ink-dim); font-size:10px; padding:8px 12px; }
+  #stats .st-sub-fold[open] > summary{ color:var(--gold); }
+  #stats .st-sub-fold > summary::before{ content:'▸'; }
+  #stats .st-sub-fold[open] > summary::before{ content:'▾'; }
+  #stats .st-sub-fold .st-fold-body{ padding:0 12px 8px; }
+
+  /* Le sélecteur du croisement : un axe face à un autre — ou à lui-même. */
+  #stats .st-xpick{ display:flex; align-items:center; gap:10px; margin:6px 0 8px; flex-wrap:wrap; }
+  #stats .st-xsel{ font-family:var(--mono); font-size:11px; color:var(--ink); background:var(--panel-solid);
+    border:1px solid var(--border-strong); border-radius:7px; padding:5px 8px; cursor:pointer; }
+  #stats .st-xsel:hover{ border-color:var(--gold); }
+  #stats .st-xtimes{ color:var(--gold); font-size:13px; }
 
   .lex-chip{ display:inline-flex; align-items:baseline; gap:5px; margin:0 6px 6px 0; padding:4px 10px; border:1px solid var(--border); border-radius:16px; cursor:pointer; font-size:12px; color: var(--ink); }
   .lex-chip:hover{ border-color: var(--border-strong); background: rgba(201,162,75,0.08); }
@@ -1267,7 +1313,7 @@
 
   <div id="legend-scroll">
     <div class="lg-block">
-      <div class="lg-title"><span id="lg-title-txt">Sujets</span><span class="clr" id="legend-reset">tout cocher</span></div>
+      <div class="lg-title"><span id="lg-title-txt">Sections</span><span class="clr" id="legend-reset">tout cocher</span></div>
       <div id="section-list"></div>
       <div id="regard-list" style="display:none;"></div>
       <div id="quand-list" style="display:none;"></div>
@@ -1497,7 +1543,7 @@
       nœud distingue. Les <b>connecteurs</b> sont les rapprochements que
       quelqu'un a réellement tracés ; les fils « même texte », <b>calculés</b>,
       relient un même propos répété à deux endroits. La section
-      tableau est un <b>arbre</b> : un <b>tronc</b> (le canevas, un tiers des
+      tableau est un <b>arbre</b> : un <b>tronc</b> (un tiers des
       nœuds) et treize <b>branches</b>. Le tronc ne résume pas les branches — il
       les <b>précède</b> : ses cent premiers post‑its sont posés cinq jours avant
       l'apparition du moindre bloc, et lorsqu'un même énoncé se retrouve des deux
@@ -1531,7 +1577,7 @@
           <li>une mesure : en constellation, une <b>distance ne se lit pas</b>
             comme une quantité ;</li>
           <li>un corpus complet : <b id="md-noregard-pct">…</b> des post‑its
-            hors « Vue d'ensemble » ne portent aucun regard attribué.</li>
+            hors du tronc ne portent aucun regard attribué.</li>
         </ul>
       </div>
     </div>
@@ -1555,9 +1601,8 @@
       <b>lus dans le graphe lui‑même</b>, pas recopiés — un protocole recopié se
       désynchronise au premier réglage.</p>
 
-    <div class="md-step">
-      <div class="md-n">§ 1</div>
-      <h4>Source et extraction</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 1</span><span class="md-h">Source et extraction</span></summary>
       <p>Le point de départ est l'export JSON de l'API Miro du tableau
         (<b id="md-src-2">…</b>). Un item devient un nœud s'il porte du texte —
         les images font exception : elles parlent en montrant, et par leur
@@ -1580,18 +1625,17 @@
         typographique et à ses marqueurs : <b id="md-paratext">…</b>. L'appareil
         reste sur la carte et dans la recherche, mais les statistiques (∑,
         lexique, croisements) l'écartent en l'annonçant — un titre n'est pas une
-        idée. Les titres de grappes du cadre perdent leur marqueur « x » dans
+        idée. Les titres de grappes du tronc perdent leur marqueur « x » dans
         l'étiquette, jamais dans le texte intégral. La <b>légende du
         tableau</b> (les pastilles de couleurs des regards), elle, est écartée
         du graphe : comptée comme corpus, elle gonflait chaque regard d'une
         unité et tissait de faux fils « même texte ».</p>
       <div class="md-sub">Ce que le build a écarté, et pourquoi</div>
       <div class="md-census" id="md-census"></div>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 2</div>
-      <h4>Affectation aux sections</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 2</span><span class="md-h">Affectation aux sections</span></summary>
       <p>Les sections sont les <b>blocs titrés du tableau lui-même</b> : treize
         ensembles, chacun annoncé sur le mur par un titre en grand corps, une
         question de recherche et une présentation. Chaque bloc porte une ou
@@ -1607,29 +1651,28 @@
         désocialisation dans « Cas pratiques », la monstration dans
         « Représentations du meurtre », la déontologie dans « Inhumation
         symbolique ») : l'affectation a été revalidée bloc par bloc, chaque titre
-        tombant désormais dans le sien. La 14ᵉ section, « Vue d'ensemble », fait
+        tombant désormais dans le sien. La 14ᵉ section, le <b>tronc</b>, fait
         exception : ses membres sont les <b>enfants du cadre</b> Miro
         (appartenance déclarée, aucune distance), et leurs coordonnées sont
-        ré‑exprimées en absolu depuis le coin haut‑gauche du cadre.</p>
+        ré‑exprimées en absolu depuis le coin haut‑gauche de ce cadre.</p>
       <p>Au‑delà de <b id="md-offboard">…</b> unités de toute ancre, un item n'est
         pas sur le tableau : il est garé à côté (mots doux, émojis) et se trouve
         écarté. Le plus grand écart légitime observé vaut ~740 ; les intrus se
         tiennent à ~6 700 — le seuil ne tranche pas un continuum, il sépare deux
         populations.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 3</div>
-      <h4>Attribution des « regards » — et des sous-thèmes</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 3</span><span class="md-h">Attribution des « regards » — et des sections</span></summary>
       <p class="md-flag"><b>La couleur ne dit pas la même chose partout.</b> Hors
-        du cadre « Vue d'ensemble », la couleur d'un post‑it désigne un
-        <b>regard</b> — c'est la légende du tableau. <b>Dans</b> le cadre, la
-        même palette désigne des <b>sous-thèmes</b> : onze grappes, chacune
+        du tronc, la couleur d'un post‑it désigne un
+        <b>regard</b> — c'est la légende du tableau. <b>Dans</b> le tronc, la
+        même palette désigne des <b>sections</b> : onze grappes, chacune
         titrée sur le mur par un post‑it « x … » de sa couleur. Une première
-        version lisait « regard » partout — le bleu ciel du cadre devenait
+        version lisait « regard » partout — le bleu ciel du tronc devenait
         « Musée du Quai Branly » quand il voulait dire « Inhumation
         symbolique » : ~105 contresens, corrigés en séparant les deux lectures.</p>
-      <p>Hors cadre, l'attribution se fait par <b>correspondance exacte</b> de la
+      <p>Hors du tronc, l'attribution se fait par <b>correspondance exacte</b> de la
         valeur de remplissage, complétée d'une table d'<b>alias</b> — les teintes
         que les auteur·rices ont employées pour le même regard sans tomber pile
         sur celle de la légende. La couleur <b>par défaut</b> d'un sticky Miro
@@ -1640,22 +1683,21 @@
         proximité de teinte reviendrait à faire parler quelqu'un. Une couleur
         absente de la table reste « non classée » :
         <b id="md-unknown">…</b>.</p>
-      <p>Dans le cadre, le sous-thème suit la même règle de correspondance
+      <p>Dans le tronc, la section suit la même règle de correspondance
         exacte, la table étant celle des onze titres « x … ». Le jaune y sert
         deux grappes (« Socialisation / désocialisation » et « Restitution du
         squelette ») : on départage par la proximité au titre. Une couleur du
-        cadre qu'aucun titre ne revendique reste « sans sous-thème » :
+        tronc qu'aucun titre ne revendique reste « sans section » :
         <b id="md-frame-unknown">…</b>.</p>
       <p class="md-flag">Conséquence de lecture : <b id="md-noregard-2">…</b> des
-        post‑its hors cadre n'ont pas de regard — et le cadre n'en a aucun, par
+        post‑its hors du tronc n'ont pas de regard — et le tronc n'en a aucun, par
         construction. Toute statistique par regard porte sur la part documentée
-        du hors-cadre, jamais sur le corpus entier — c'est pourquoi deux autres
+        hors du tronc, jamais sur le corpus entier — c'est pourquoi deux autres
         axes de lecture, entièrement calculés, sont proposés (§ 5).</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 4</div>
-      <h4>Les liens, et ce qu'ils pèsent</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 4</span><span class="md-h">Les liens, et ce qu'ils pèsent</span></summary>
       <p>Deux familles d'arêtes, distinguées à l'écran comme dans les calculs :</p>
       <div class="md-params">
         <div class="md-p"><span>Connecteurs · traits tracés à la main</span><b id="md-e-conn">…</b></div>
@@ -1693,11 +1735,10 @@
       <p class="md-note">Le plafond est atteint dès huit voisins : au‑delà, une
         différence de rayon ne se lirait plus. Un encodage qui ne se lit pas doit
         s'arrêter.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 5</div>
-      <h4>Deux lectures calculées, sans donnée manquante</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 5</span><span class="md-h">Deux lectures calculées, sans donnée manquante</span></summary>
       <p>Là où « regard » est éditorial et lacunaire, deux classifications sont
         <b>dérivées du graphe</b> — donc complètes par construction :</p>
       <p><b>Degré</b>, le nombre de liens : sept classes, une par valeur jusqu'à
@@ -1715,11 +1756,10 @@
       <p class="md-note">Cette fragmentation n'est pas un défaut du graphe : c'est
         une propriété du tableau. Elle explique qu'entre deux post‑its, il puisse
         n'exister <b>aucun chemin</b> (§ 11).</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 5 bis</div>
-      <h4>Le temps — une troisième provenance</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 5 bis</span><span class="md-h">Le temps — une troisième provenance</span></summary>
       <p>Miro horodate chaque item. Cette donnée n'est ni <b>posée</b> par les
         auteur·rices (personne n'a choisi d'écrire une date) ni <b>calculée</b>
         sur le graphe : elle est <b>relevée</b> par l'outil. C'est une nature à
@@ -1730,7 +1770,7 @@
         <div class="md-p"><span>Post‑its datés</span><b id="md-dated">…</b></div>
       </div>
       <p>C'est la donnée la <b>mieux couverte du corpus</b> — mieux que
-        « regard », qui laisse la moitié du hors‑cadre sans réponse. Les quatre
+        « regard », qui laisse sans réponse la moitié des post‑its hors du tronc. Les quatre
         temps ne découpent pas une durée en parts égales : ils suivent les
         <b>vraies coupures de l'archive</b>. Entre deux créations consécutives,
         les plus grands écarts valent <b id="md-silences">…</b> — des
@@ -1744,8 +1784,8 @@
         borne se vérifie.</p>
       <p class="md-flag">Ce que cet axe donne à voir, et qu'aucun autre ne
         montre : les deux tiers du tableau tiennent en <b>deux jours</b>, et le
-        premier temps est <b>entièrement</b> le canevas — la « Vue d'ensemble »
-        précède les blocs au lieu de les résumer (§ 12).</p>
+        premier temps est <b>entièrement</b> le tronc — il
+        précède les branches au lieu de les résumer (§ 12).</p>
       <p class="md-note"><b>Le jour, jamais l'heure.</b> L'horodatage complet
         dirait à quelle heure de la nuit telle personne a travaillé seule : ce
         n'est pas le sujet de ce site, et l'archive n'autorise pas à le publier.
@@ -1765,11 +1805,10 @@
         sont inconnus ; <code>modifiedAt</code> est donc volontairement exclu.
         Les heures complètes servent uniquement au build pour ordonner les
         événements, puis seule une position normalisée entre 0 et 1 est publiée.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 5 ter</div>
-      <h4>La forme — sous quel registre la chose est dite</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 5 ter</span><span class="md-h">La forme — sous quel registre la chose est dite</span></summary>
       <p>Les trois premières questions demandent au post‑it <b>de quoi</b> il
         parle, <b>quel point de vue</b> il porte et <b>quand</b> il a été écrit.
         « Comment ? » lui demande sa <b>forme</b> : une note prise au vol, une
@@ -1802,11 +1841,10 @@
         positifs subsistent — c'est le prix d'une classe qui, sans cette règle,
         n'existerait pas ; le seuil est écrit ici pour être discuté, comme tous
         les autres.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 5 quater</div>
-      <h4>Le « pourquoi » — et ce qu'il ne peut pas être</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 5 quater</span><span class="md-h">Le « pourquoi » — et ce qu'il ne peut pas être</span></summary>
       <p>Un tableau de travail enregistre ce qui a été écrit, pas les raisons de
         l'écrire. <b>L'intention n'est nulle part dans la donnée</b> : personne
         n'a noté pourquoi il posait tel post‑it, et un axe qui prétendrait la
@@ -1838,11 +1876,10 @@
         elle‑même</b> y répond — la position d'un post‑it EST son lieu, un axe
         le redirait. Et le « pourquoi » au sens de l'intention reste, lui,
         hors du tableau.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 6</div>
-      <h4>Disposition A — cartographie</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 6</span><span class="md-h">Disposition A — cartographie</span></summary>
       <p>Le tableau à plat, à l'échelle de la scène. La transformation est une
         <b>similitude</b> : translation au centre de l'emprise, homothétie
         <b>isotrope</b> de rapport <span class="md-f">L / (x<sub>max</sub> −
@@ -1856,11 +1893,10 @@
         uniforme sur z, à graine fixe : deux post‑its superposés sur le mur ne se
         masquent pas exactement. La scène reste un plan — d'où l'absence de
         brouillard et de rotation dans ce mode (§ 9).</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 6 bis</div>
-      <h4>Le tracé des liens — direct ou circuit</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 6 bis</span><span class="md-h">Le tracé des liens — direct ou circuit</span></summary>
       <p>Sur la cartographie, un lien se dessine de deux façons. <b>Direct</b> :
         une corde, d'un nœud à l'autre. <b>Circuit</b> : un chemin
         <b>orthogonal</b> à un ou deux coudes, biseautés à 45°, choisi pour
@@ -1918,11 +1954,10 @@
         l'option se tait plutôt que d'agir à moitié : « se croiser » n'y a pas de
         sens — deux traits qui se croisent à l'écran ne se touchent pas dans
         l'espace, et la figure changerait à chaque tour de caméra.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 7</div>
-      <h4>Disposition B — constellation</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 7</span><span class="md-h">Disposition B — constellation</span></summary>
       <p>Le tableau <b>délié de sa géographie</b> : ce qui rapproche n'est plus le
         voisinage sur le mur, c'est le lien. La géographie reste toujours celle
         de <b>Gravitation</b> ; Direct et Orbite ne déplacent aucun post‑it et ne
@@ -1967,11 +2002,10 @@
         détour, ni chronologie, ni hiérarchie. Elle est une commodité de lecture,
         comme les coudes du Circuit : seules ses <b>extrémités</b>, la pointe
         éventuelle et le type du lien portent les données.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 8</div>
-      <h4>Recentrage égocentrique</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 8</span><span class="md-h">Recentrage égocentrique</span></summary>
       <p>Depuis la fiche d'un nœud, « ⊚ Recentrer ici » ne change pas de
         disposition : c'est une <b>option de la disposition courante</b>. Un
         parcours en largeur depuis le nœud focal donne à la fois la <b>distance de
@@ -2001,11 +2035,10 @@
         hors du monde. Il est renvoyé au centre, rendu invisible, et exclu du
         cadrage ; la barre du recentrage annonce combien. Basculer d'onglet
         re‑projette le <b>même arbre</b> de 2D en 3D et réciproquement.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 9</div>
-      <h4>Rendu, profondeur et cadrage</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 9</span><span class="md-h">Rendu, profondeur et cadrage</span></summary>
       <p>Rendu WebGL (Three.js), avec une passe de <em>bloom</em> pour que
         l'intensité d'un nœud reste lisible sur fond sombre. <b>Aucune étoile
         décorative en fond</b> : dans cette scène, un point qui brille est une
@@ -2029,11 +2062,10 @@
         temps</b> : recul dans l'orientation courante (lire la scène qu'on quitte),
         métamorphose vue de loin, puis retour de face et zoom sur ce qui comptait
         — le nœud focal, à défaut le nœud sélectionné, à défaut la zone en lumière.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 10</div>
-      <h4>La légende comme système d'axes</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 10</span><span class="md-h">La légende comme système d'axes</span></summary>
       <p>La légende se lit de haut en bas comme trois décisions emboîtées : <b>où
         l'on est</b> (la disposition), <b>quel corpus on regarde</b>
         (l'arborescence, § 10 bis), puis <b>ce qui colore</b> ce qu'on voit.</p>
@@ -2053,21 +2085,22 @@
         résultat d'un comptage : le regroupement sert la lecture, la bordure
         tient la rigueur. La même convention court jusqu'aux pastilles de la
         fiche d'un post‑it et à la ligne du recentrage.</p>
-      <p><b>« Quoi ? » a deux vocabulaires</b>, parce que le tableau est deux
-        corpus : dans les branches il parle en <b>blocs</b>, dans le tronc en
-        <b>sujets</b> (les onze grappes de couleur). La légende les présente en
-        deux groupes repliables, et l'arborescence déplie celui qui classe
+      <p><b>« Quoi ? » classe par section, à deux échelles</b>, parce que le tableau est deux
+        corpus : dans les branches, les <b>treize blocs</b> titrés ; dans le tronc,
+        <b>onze grappes</b> de couleur. La légende les présente en
+        deux groupes repliables — sections des branches, sections du tronc —, et
+        l'arborescence déplie celui qui classe
         quelque chose. C'est ce qui a fait disparaître deux choses : un onglet
-        « Sous-thème » séparé, qui posait une question déjà posée ; et une ligne
-        « Vue d'ensemble » parmi les blocs, qui n'était pas un sujet mais un
+        séparé pour le tronc, qui posait une question déjà posée ; et une ligne
+        pour le tronc parmi les sections, qui n'était pas une section mais un
         lieu — une pièce listée parmi des thèmes.</p>
-      <p><b>« Qui ? » se tait dans le tronc</b> et le dit : le canevas ne porte
-        aucun regard, sa couleur y désigne un sujet. L'onglet reste visible mais
+      <p><b>« Qui ? » se tait dans le tronc</b> et le dit : le tronc ne porte
+        aucun regard, sa couleur y désigne une section. L'onglet reste visible mais
         refuse le clic — le masquer laisserait croire qu'il n'existe pas, alors
         qu'il n'a simplement rien à dire ici.</p>
       <div class="md-sub">L'arborescence — deux corpus, pas un</div>
       <p>Le tableau n'est pas un ensemble homogène de post‑its : c'est un
-        <b>tronc</b> (le canevas, <b id="md-arbre-tronc">…</b>) et des
+        <b>tronc</b> (<b id="md-arbre-tronc">…</b>) et des
         <b>branches</b> (les treize blocs, <b id="md-arbre-branches">…</b>).
         L'arborescence, en tête de légende, permet de
         regarder l'un, l'autre, ou l'arbre entier — ce n'est pas une commodité
@@ -2075,7 +2108,7 @@
       <p class="md-flag">Deux mesures l'établissent. D'abord la <b>séparation</b> :
         <span id="md-arbre-sep">…</span> <b>Aucun trait tracé à la main
         ne franchit la frontière</b> : personne n'a jamais relié un post‑it du
-        canevas à un post‑it de bloc. Ensuite l'<b>antériorité</b> :
+        tronc à un post‑it de branche. Ensuite l'<b>antériorité</b> :
         <b id="md-arbre-anter">…</b> post‑its du tableau sont tous dans le tronc,
         cinq jours avant l'apparition du moindre bloc, et
         <span id="md-arbre-older">…</span> Le tronc porte les branches ; la
@@ -2090,7 +2123,7 @@
         l'arbre, rien n'est filtré — les fils qui relient les deux corpus
         restent entiers, et c'est là qu'on les voit.</p>
       <p><b>Degré et Tissu se recalculent sur l'étendue</b>, et le titre de la
-        liste le dit (« … dans le tronc »). Sans cela, un nœud du canevas
+        liste le dit (« … dans le tronc »). Sans cela, un nœud du tronc
         s'annoncerait « 6 liens et plus » quand la carte n'en montre que
         trois — un chiffre que ce qu'on voit dément. Le recalcul est légitime ici
         précisément parce que la frontière est réelle : les seuls liens qu'une
@@ -2108,11 +2141,10 @@
         (sélection). Les filtres des sept axes se <b>cumulent</b>, quel que soit
         l'onglet ouvert. Les sections, enfin, n'ont pas de sphère sur la carte :
         une section est un ensemble de post‑its, pas un point dans l'espace.</p>
-    </div>
+    </details>
 
-    <div class="md-step">
-      <div class="md-n">§ 11</div>
-      <h4>Analyse, lexique et chemins</h4>
+    <details class="md-step">
+      <summary><span class="md-n">§ 11</span><span class="md-h">Analyse, lexique et chemins</span></summary>
       <p><b>Chemins.</b> Parcours en largeur non pondéré sur l'ensemble des liens
         (connecteurs et fils) : le chemin obtenu est le plus court en
         <b>nombre de sauts</b>, ce qui n'est pas une proximité sémantique.
@@ -2145,7 +2177,7 @@
         graine fixe que la constellation, pour les mêmes raisons.</p>
       <p><b>Croisement section × regard.</b> Une simple table de contingence sur
         le corpus de contenu ; ses cellules filtrent la paire sur la carte. La
-        colonne « Vue d'ensemble » n'y compte que du non-classé (le cadre n'a pas
+        colonne « Tronc » n'y compte que du non-classé (le tronc n'a pas
         de regards, § 3), et la couverture varie fort d'un bloc à l'autre — une
         ligne creuse dit d'abord que la couleur n'a pas été posée là. Aucun test
         statistique n'y est conduit : avec la moitié des regards manquants, un
@@ -2157,17 +2189,16 @@
         vue. Restreint aux connecteurs, à l'exclusion des fils « même texte » :
         un post‑it répété ailleurs n'est pas un dialogue, c'est la même voix
         redite. Matrice symétrique, un seul triangle affiché.</p>
-    </div>
+    </details>
 
-    <div class="md-step md-limits">
-      <div class="md-n">§ 12</div>
-      <h4>Limites, et reproductibilité</h4>
+    <details class="md-step md-limits">
+      <summary><span class="md-n">§ 12</span><span class="md-h">Limites, et reproductibilité</span></summary>
       <ul>
-        <li><b id="md-noregard-3">…</b> des post‑its hors « Vue d'ensemble »
-          n'ont aucun regard — et le cadre n'en a pas du tout, par construction :
-          les répartitions par regard décrivent la part documentée du hors-cadre,
+        <li><b id="md-noregard-3">…</b> des post‑its hors du tronc
+          n'ont aucun regard — et le tronc n'en a pas du tout, par construction :
+          les répartitions par regard décrivent la part documentée hors du tronc,
           jamais le corpus.</li>
-        <li>La lecture « couleur = sous-thème » dans le cadre repose sur les onze
+        <li>La lecture « couleur = section » dans le tronc repose sur les onze
           titres « x … » du tableau : c'est une <b>interprétation éditoriale</b>,
           forte mais discutable — comme le découpage en blocs et leurs ancres.</li>
         <li>La <b>direction des connecteurs</b> et leurs pointillés sont
@@ -2184,10 +2215,10 @@
           affichés pour être discutés.</li>
         <li>Le tableau est une <b>trace de travail collectif</b> : il porte les
           hésitations, les redites et les partis pris de ses auteur·rices — c'est
-          d'ailleurs ce qu'il a d'intéressant. La « Vue d'ensemble » n'y est pas
-          un résumé mais un <b>point de départ</b> : elle précède les blocs de
-          cinq jours, et les fils « même texte » qui la relient à eux partent
-          d'elle dans 125 cas sur 129 — le tableau se lit donc du canevas vers
+          d'ailleurs ce qu'il a d'intéressant. Le <b>tronc</b> n'y est pas
+          un résumé mais un <b>point de départ</b> : il précède les branches de
+          cinq jours, et les fils « même texte » qui le relient à elles partent
+          de lui dans 125 cas sur 129 — le tableau se lit donc du tronc vers
           ses développements, non l'inverse.</li>
       </ul>
       <p class="md-note"><b>Reproductibilité.</b> <code>export_miro.json</code> est
@@ -2196,7 +2227,7 @@
         fixe comprise. Le script annonce en fin d'exécution ce qu'il a écarté et
         pourquoi (§ 1). Corriger une donnée, c'est corriger le tableau ou la
         règle — jamais le produit.</p>
-    </div>
+    </details>
   </section>
 
   <!-- ═════════════════════════════════════════════════════ Navigation ═══ -->
@@ -2215,7 +2246,7 @@
     <div class="kbd-row"><span>Déplier la légende</span><b>survoler (📌 = garder ouverte)</b></div>
     <div class="kbd-row"><span>Choisir le corpus regardé</span><b>Arborescence : Arbre · Tronc · Branches</b></div>
     <div class="kbd-row"><span>Choisir ce qui colore la carte</span><b>onglets Quoi ? · Qui ? · Quand ? · Degré · Tissu</b></div>
-    <div class="kbd-row"><span>Lire les périodes de travail (bornes exactes au survol)</span><b>« Quand ? » · 4 périodes, du canevas à l’enquête</b></div>
+    <div class="kbd-row"><span>Lire les périodes de travail (bornes exactes au survol)</span><b>« Quand ? » · 4 périodes, du tronc à l’enquête</b></div>
     <div class="kbd-row"><span>Éteindre une catégorie</span><b>décocher sa case</b></div>
     <div class="kbd-row"><span>Mettre une zone en lumière (et s'y rendre)</span><b>cliquer son nom dans la légende</b></div>
     <div class="kbd-row"><span>Épingler les étiquettes d'une catégorie</span><b>icône 🏷 de sa ligne</b></div>
@@ -2250,7 +2281,7 @@
   <div id="stats" role="dialog" aria-modal="true" aria-labelledby="stats-title">
     <div id="stats-close">✕</div>
     <h2 id="stats-title">Analyse du corpus</h2>
-    <p class="st-note">Chiffres calculés à l'ouverture depuis <b style="color:var(--ink)">graph.json</b> — rien n'est écrit à la main. Les répartitions se cliquent (mise en lumière sur la carte), les cellules du croisement filtrent la paire section × regard, le lexique lance la recherche.</p>
+    <p class="st-note">Chiffres calculés à l'ouverture depuis <b style="color:var(--ink)">graph.json</b> — rien n'est écrit à la main. Le panneau est un <b>sommaire</b> : dépliez ce que vous voulez lire. Les répartitions se cliquent (mise en lumière sur la carte), les cellules du croisement isolent la paire choisie, le lexique lance la recherche.</p>
     <div id="stats-body"></div>
   </div>
 </div>
@@ -2405,8 +2436,8 @@ const SECTIONS = DATA.sections;
 // Un graph.json antérieur n'en a pas — l'en-tête reste alors simplement absent.
 const PRESENTATIONS = DATA.presentations || {};
 const REGARDS = DATA.regards;
-// Les 11 sous-thèmes de la « Vue d'ensemble » : DANS le cadre, la couleur d'un
-// post-it désigne une grappe thématique du canevas de départ, PAS un regard (voir
+// Les 11 sections du tronc : DANS le tronc, la couleur d'un
+// post-it désigne une grappe thématique du tronc, PAS un regard (voir
 // build-graph.mjs). Un graph.json antérieur n'en a pas — l'axe existe quand
 // même, avec ses seules catégories génériques, et la console le dit.
 const SOUSTHEMES = DATA.sousThemes || [];
@@ -2424,7 +2455,7 @@ const FORMES = DATA.formes || [];
 if (!DATA.formes) console.warn('[axes] DATA.formes absent — relancer node build-graph.mjs.');
 const NEUTRAL_REGARD = DATA.neutralRegardColor;
 const NONE_KEY = '__none__';
-// La teinte du tronc, pour les items du canevas qu'aucun sous-thème ne réclame.
+// La teinte du tronc, pour ses items qu'aucune section ne réclame.
 const FRAME_COLOR = (SECTIONS.find(s => s.id === 's_frame') || {}).color || '#d9c9a3';
 
 /**
@@ -2433,7 +2464,7 @@ const FRAME_COLOR = (SECTIONS.find(s => s.id === 's_frame') || {}).color || '#d9
  * internes au tronc, des liens internes aux branches, et ceux qui TRAVERSENT
  * la frontière sont TOUS des fils « même texte » — calculés par nous, jamais
  * tracés à la main (crossConnector = 0). Personne n'a jamais relié à la main un
- * post-it du canevas à un post-it de bloc.
+ * post-it du tronc à un post-it de branche.
  *
  * Le tronc précède les branches (ses premiers post-its ont plusieurs jours
  * d'avance, et parmi les énoncés présents des deux côtés la grande majorité est
@@ -2452,10 +2483,10 @@ const SCOPES = [
     hint: "Le tableau entier — le tronc, les branches, et les fils « même texte » qui les relient.",
     has: () => true },
   { key: 'tronc',    label: 'Tronc',    title: 'Le tronc',
-    hint: "Le canevas — la question dépliée du 23 au 27 octobre 2025, avant l'atelier. Sa couleur y désigne un sous-thème, jamais un regard.",
+    hint: "La question de départ, dépliée du 23 au 27 octobre 2025, avant l'atelier. Sa couleur y désigne une section, jamais un regard.",
     has: n => n.section === 's_frame' },
   { key: 'branches', label: 'Branches', title: 'Les branches',
-    hint: 'Les treize blocs développés autour du canevas — c\'est là, et là seulement, que la couleur désigne un regard.',
+    hint: 'Les treize blocs développés autour du tronc — c\'est là, et là seulement, que la couleur désigne un regard.',
     has: n => n.section !== 's_frame' },
 ];
 const SCOPE_BY_KEY = new Map(SCOPES.map(s => [s.key, s]));
@@ -2490,7 +2521,7 @@ LEAVES.forEach(n => { n.__norm = normFr(n.fullText || n.label || ''); });
 // ============================================================ Attributs d\u00e9riv\u00e9s
 /**
  * Deux classifications D\u00c9RIV\u00c9ES du graphe lui-m\u00eame \u2014 donc sans aucune donn\u00e9e
- * manquante, l\u00e0 o\u00f9 \u00ab regard \u00bb laisse plus de la moiti\u00e9 du hors-cadre non class\u00e9 :
+ * manquante, l\u00e0 o\u00f9 \u00ab regard \u00bb laisse plus de la moiti\u00e9 du hors-tronc non class\u00e9 :
  * le DEGR\u00c9 (voir ROLE_DEFS ci-dessous) et la COMPOSANTE connexe (voir
  * COMPONENTS). Toutes deux se calculent ici, par BFS sur les feuilles \u2014 les
  * sections sont des ensembles de post-its, pas des n\u0153uds du tissu.
@@ -2685,29 +2716,31 @@ function computeStructure() {
  */
 const AXES = {
   /**
-   * « Quoi ? » — de quoi ça parle. UN axe, DEUX vocabulaires, parce que le
-   * tableau est deux corpus : dans les branches on parle en blocs, dans le
-   * tronc en sous-thèmes. C'est ce qui a fait disparaître l'ancien onglet
-   * « Sous-thème » (il posait une question déjà posée) et la ligne « Vue
-   * d'ensemble » (qui n'était pas un thème mais un lieu — une erreur de
-   * catégorie : elle listait une pièce parmi des sujets).
+   * « Quoi ? » — de quoi ça parle. UN axe, la SECTION, à deux échelles, parce
+   * que le tableau est deux corpus : dans les branches, les blocs titrés ; dans
+   * le tronc, les grappes de couleur (champ `sousTheme` — le nom
+   * d'implémentation de la section du tronc). C'est ce qui a fait disparaître
+   * l'ancien onglet séparé du tronc (il posait une question déjà posée) et la
+   * ligne pour le tronc parmi les sections (qui n'était pas une section mais un
+   * lieu — une erreur de catégorie : elle listait une pièce parmi des sujets).
    *
-   * Le sous-thème PRIME sur la section : à l'intérieur du tronc, il est le
-   * vocabulaire le plus fin dont on dispose. Un item du tronc sans sous-thème
-   * retombe sur `s_frame`, et la ligne « Sans sous-thème » le dit. Deux cas s'y
+   * La section du tronc PRIME sur celle de branche : à l'intérieur du tronc,
+   * elle est le vocabulaire le plus fin dont on dispose. Un item du tronc sans
+   * section (`sousTheme` absent) retombe sur `s_frame`, et la ligne « Sans
+   * section » le dit. Deux cas s'y
    * rejoignent, et le build les compte séparément : ceux dont la couleur n'est
    * revendiquée par aucun titre « x … » (`unknownFrameFillCount`) et ceux qui
    * n'ont PAS de couleur du tout — ces derniers échappent à ce recensement,
    * d'où l'écart entre lui et la taille de cette ligne.
    */
   section: {
-    label: 'Quoi ?', title: 'Sujets', mini: 'Qo',
+    label: 'Quoi ?', title: 'Sections', mini: 'Qo',
     keyOf: n => n.sousTheme || n.section,
     colorOf: n => n.sousThemeColor || n.sectionColor,
     items: () => SECTIONS.filter(s => s.id !== 's_frame')
       .map(s => ({ key: s.id, name: s.name, color: s.color, group: 'branches' }))
       .concat(SOUSTHEMES.map(t => ({ key: t.key, name: t.name, color: t.color, group: 'tronc' })))
-      .concat([{ key: 's_frame', name: 'Sans sous-thème', color: FRAME_COLOR, group: 'tronc' }]),
+      .concat([{ key: 's_frame', name: 'Sans section', color: FRAME_COLOR, group: 'tronc' }]),
   },
   regard: {
     label: 'Qui ?', title: 'Regards', mini: 'Qi',
@@ -2896,7 +2929,7 @@ const state = {
   // millimètre —, c'est la manière dont les traits vont de l'un à l'autre. D'où
   // sa place SOUS la disposition, et son silence hors cartographie.
   trace: 'direct',
-  // L'ÉTENDUE regardée : arbre (tout) · tronc (le canevas) · branches (les
+  // L'ÉTENDUE regardée : arbre (tout) · tronc · branches (les
   // blocs). C'est un filtre, pas une disposition — il compose donc avec les
   // cases de la légende au lieu de les remplacer.
   scope: 'arbre',
@@ -4029,11 +4062,11 @@ function buildLegendRow(axis, { key, name, color, count, hint, group, onGo }) {
 // on cadre leurs membres, et c'est la mise en lumière (setFocus) qui fait le
 // travail de les distinguer, pas le voyage.
 /**
- * Les groupes de « Quoi ? » : deux vocabulaires, deux en-têtes repliables.
+ * Les groupes de « Quoi ? » : une section à deux échelles, deux en-têtes repliables.
  * En arbre les deux paraissent (24 lignes, d'où le repli) ; dans une étendue
  * restreinte, seul le groupe concerné reste — l'autre ne classerait rien.
  */
-const GROUP_LABEL = { branches: 'les treize blocs', tronc: 'les sous-thèmes du tronc' };
+const GROUP_LABEL = { branches: 'sections des branches', tronc: 'sections du tronc' };
 const groupHeaders = new Map();
 function addGroupHeader(axis, group) {
   const g = LEGEND[axis];
@@ -4042,9 +4075,9 @@ function addGroupHeader(axis, group) {
   h.dataset.group = group;
   h.innerHTML = `<span class="fold">▾</span><span>${GROUP_LABEL[group]}</span>`;
   h.addEventListener('click', () => {
-    // Le repli n'a de sens que sur l'ARBRE, seul mode où les deux vocabulaires
+    // Le repli n'a de sens que sur l'ARBRE, seul mode où les deux échelles
     // cohabitent (24 lignes). Restreint au tronc ou aux branches, la liste ne
-    // porte qu'un vocabulaire : elle est fixe, et l'en-tête n'est plus qu'un
+    // porte qu'une échelle : elle est fixe, et l'en-tête n'est plus qu'un
     // intitulé (classe `fixed`, sans chevron ni curseur de clic).
     if (state.scope !== 'arbre') return;
     const folded = h.classList.toggle('collapsed');
@@ -4065,7 +4098,7 @@ AXIS_KEYS.forEach(ax => {
       key: it.key, name: it.name, color: it.color, hint: it.hint, group: it.group,
       count: countByAxis[ax][it.key],
       // « Quoi ? » mène au groupe de nœuds de la catégorie, quelle que soit
-      // sa nature — un bloc rassemble ses post-its, un sous-thème les siens.
+      // sa nature — une section de branche rassemble ses post-its, une section du tronc les siens.
       onGo: () => {
         const catNodes = LEAVES.filter(n => AXES[ax].keyOf(n) === it.key && inScope(n));
         if (catNodes.length) flyToGroup(catNodes);
@@ -4100,10 +4133,10 @@ function refreshLegendNames() {
 /**
  * Les catégories qui CLASSENT quelque chose dans l'étendue courante.
  *
- * Le repli d'un groupe est un confort de lecture, pas un filtre : les sujets
+ * Le repli d'un groupe est un confort de lecture, pas un filtre : les sections
  * du tronc colorent la carte même quand leur groupe est fermé. Le rail replié
  * montre donc toutes les couleurs de l'étendue — sur l'arbre, les deux
- * vocabulaires — et « tout cocher » agit sur le même ensemble. Se régler sur
+ * échelles — et « tout cocher » agit sur le même ensemble. Se régler sur
  * le repli ferait disparaître du rail des couleurs bien présentes à l'écran.
  */
 function scopedLegendItems(ax) {
@@ -4233,7 +4266,7 @@ document.getElementById('legend-reset').addEventListener('click', () => {
  *   1. la structure se recalcule (degré et tissu n'ont de sens que sur ce qu'on
  *      regarde), puis les comptes qui la lisent ;
  *   2. les groupes de « Quoi ? » se replient sur le vocabulaire pertinent ;
- *   3. « Qui ? » se désactive dans le tronc — le canevas n'a aucun regard, un
+ *   3. « Qui ? » se désactive dans le tronc — il n'a aucun regard, un
  *      onglet qui ne classerait rien doit le DIRE, jamais rester cliquable ;
  *   4. les lignes de légende se réécrivent (leurs noms portent des comptes) ;
  *   5. la carte se recolore et se recadre sur ce qui reste.
@@ -4260,8 +4293,8 @@ function sayScope(msg) {
   if (msg) scopeSayTimer = setTimeout(() => { scopeHintEl.textContent = ''; }, 6000);
 }
 
-/** Le groupe ouvert est-il un SUJET DU TRONC ? Ses post-its viennent alors du
- *  canevas, qui ne porte aucun regard — même situation que l'étendue « tronc »,
+/** Le groupe ouvert est-il une SECTION DU TRONC ? Ses post-its viennent alors du
+ *  tronc, qui ne porte aucun regard — même situation que l'étendue « tronc »,
  *  atteinte par un autre chemin. */
 function groupIsTronc() {
   const g = state.groupPanel;
@@ -4271,8 +4304,8 @@ function groupIsTronc() {
 }
 
 /** L'axe « Qui ? » ne classe rien quand ce qu'on regarde vient du tronc : le
- *  canevas n'a aucun regard, sa couleur y désigne un sujet. Deux façons d'y
- *  être — l'étendue « tronc », ou un groupe de sujet ouvert. */
+ *  le tronc n'a aucun regard, sa couleur y désigne une section. Deux façons d'y
+ *  être — l'étendue « tronc », ou un groupe de section du tronc ouvert. */
 function regardIsMute() { return state.scope === 'tronc' || groupIsTronc(); }
 
 /**
@@ -4283,8 +4316,8 @@ function regardIsMute() { return state.scope === 'tronc' || groupIsTronc(); }
 function axisMuteReason(tab) {
   if (tab !== 'regard' || !regardIsMute()) return null;
   return groupIsTronc()
-    ? "Ce groupe est un sujet du TRONC, et le tronc ne porte aucun regard : « Qui ? » n’y classerait rien."
-    : "« Qui ? » ne classe rien dans le tronc : le canevas n’a aucun regard, sa couleur y désigne un sujet (voir « Quoi ? »).";
+    ? "Ce groupe est une section du TRONC, et le tronc ne porte aucun regard : « Qui ? » n’y classerait rien."
+    : "« Qui ? » ne classe rien dans le tronc : il n’a aucun regard, sa couleur y désigne une section (voir « Quoi ? »).";
 }
 
 /** Applique les mises en sourdine sur les onglets d'axe — seul endroit qui
@@ -4437,7 +4470,7 @@ function updateMini() {
 updateLegendBadges();
 // syncScopeUi AVANT updateMini : c'est lui qui replie les groupes, et le rail
 // ne montre que les catégories restées visibles — l'inverse afficherait les
-// deux vocabulaires de « Quoi ? » le temps d'une image.
+// deux échelles de « Quoi ? » le temps d'une image.
 syncScopeUi();
 updateMini();
 
@@ -5302,7 +5335,7 @@ function selectNode(n, skipFly, onDone) {
   // Les axes de la légende, tous, sur la fiche du nœud : on doit pouvoir lire
   // d'un coup où il est classé — y compris sur les deux axes CALCULÉS, qui eux
   // ne manquent jamais. La convention de la légende tient : trait plein =
-  // éditorial (section, regard, sous-thème), TIRETÉ = calculé (degré, tissu).
+  // éditorial (section, regard), TIRETÉ = calculé (degré, tissu).
   detailChips.innerHTML = '';
   if (n.kind !== 'section') {
     // Le nom complet vit dans `title` (survol) : la pastille elle-même
@@ -5333,13 +5366,13 @@ function selectNode(n, skipFly, onDone) {
       html = chip(relationMeta[0], relationMeta[1], `Champ lexical calculé — ${why}`, 'calc') + html;
     }
     if (n.regard) {
-      html += chip(n.regardColor, n.regard, 'Regard — le point de vue désigné par la couleur du post‑it (hors du cadre « Vue d’ensemble »)');
+      html += chip(n.regardColor, n.regard, 'Regard — le point de vue désigné par la couleur du post‑it (hors du tronc)');
     }
-    // Dans le cadre, la couleur dit un SOUS-THÈME du canevas — pas un
+    // Dans le tronc, la couleur dit une SECTION — pas un
     // regard (voir build-graph.mjs) : la fiche l'affiche à sa place.
     if (n.sousTheme) {
       const st = SOUSTHEMES.find(t => t.key === n.sousTheme);
-      if (st) html += chip(n.sousThemeColor, st.name, 'Sujet — la grappe de couleur du tronc à laquelle ce post‑it appartient (c’est ce que « Quoi ? » y affiche)');
+      if (st) html += chip(n.sousThemeColor, st.name, 'Section — la grappe de couleur du tronc à laquelle ce post‑it appartient (c’est ce que « Quoi ? » y affiche)');
     }
     // L'appareil du tableau (titres de blocs, questions de recherche,
     // présentations) reste visible et cherchable, mais il se DIT : ces nœuds
@@ -5348,7 +5381,7 @@ function selectNode(n, skipFly, onDone) {
     // forme ne dit pas : ces nœuds sont écartés des statistiques ∑. Pour une
     // image ou une référence, « Comment ? » l'annonce déjà — deux pastilles
     // côte à côte disant « Image » auraient reposé la même question, l'erreur
-    // même qui avait fait supprimer l'onglet « Sous-thème ».
+    // même qui avait fait supprimer l'ancien onglet séparé du tronc.
     const NATURE_LABEL = {
       titre: 'Titre de bloc', question: 'Question de recherche',
       meta: 'Présentation du tableau',
@@ -8051,8 +8084,8 @@ const dec = n => String(n).replace('.', ',');
 
 function buildMethodFiche() {
   const M = DATA.method;
-  // Les regards ne se lisent que HORS du cadre « Vue d'ensemble » (dedans, la
-  // couleur dit un sous-thème) : le pourcentage se rapporte à cette base-là.
+  // Les regards ne se lisent que HORS du tronc (dedans, la
+  // couleur dit une section) : le pourcentage se rapporte à cette base-là.
   const HORS = LEAVES.filter(n => n.section !== 's_frame');
   const noRegard = HORS.filter(n => !n.regardKey).length;
   const pct = Math.round(100 * noRegard / HORS.length) + ' %';
@@ -8065,7 +8098,7 @@ function buildMethodFiche() {
     [nfr(conn), 'traits tracés à la main'],
     [nfr(conc), 'fils « même texte »'],
     [nfr(SECTIONS.length), 'sections (les blocs du tableau)'],
-    [`${nfr(REGARDS.length)} · ${nfr(SOUSTHEMES.length)}`, 'regards · sous‑thèmes'],
+    [`${nfr(REGARDS.length)} · ${nfr(SOUSTHEMES.length)}`, 'regards · sections du tronc'],
     [nfr(PERIODES.length), 'temps de travail'],
   ];
   document.getElementById('md-figs').innerHTML = figs
@@ -8158,8 +8191,8 @@ function buildMethodFiche() {
   fillFig('md-span', `L = ${P.miroSpanX} unités de scène`);
   fillFig('md-jitter', `± ${dec(P.miroJitterZ)} unités`);
   fillFig('md-seed', `graine ${P.seed}`);
-  fillFig('md-unknown', `${nfr(C.unknownFillCount)} post‑its hors cadre, sur ${nfr(C.unknownFillKinds)} teintes distinctes`);
-  fillFig('md-frame-unknown', `${nfr(C.unknownFrameFillCount)} items du cadre, sur ${nfr(C.unknownFrameFillKinds)} teintes`);
+  fillFig('md-unknown', `${nfr(C.unknownFillCount)} post‑its hors du tronc, sur ${nfr(C.unknownFillKinds)} teintes distinctes`);
+  fillFig('md-frame-unknown', `${nfr(C.unknownFrameFillCount)} items du tronc, sur ${nfr(C.unknownFrameFillKinds)} teintes`);
   const NAT = C.natures || {};
   fillFig('md-paratext', `${nfr((NAT.titre || 0) + (NAT.question || 0) + (NAT.meta || 0))} nœuds d'appareil (${nfr(NAT.titre || 0)} titres · ${nfr(NAT.question || 0)} questions · ${nfr(NAT.meta || 0)} présentations)`);
   fillFig('md-dated', `${nfr(C.dated)} sur ${nfr(C.kept)} — du ${frDate(C.firstDay)} au ${frDate(C.lastDay)}`);
@@ -8177,7 +8210,7 @@ function buildMethodFiche() {
    * que les mettre en français.
    *
    * ⚠ Le compte de traversées tracées à la main est affiché TEL QUEL, jamais
-   * présumé nul : si un jour quelqu'un relie le canevas à un bloc, la fiche doit
+   * présumé nul : si un jour quelqu'un relie le tronc à une branche, la fiche doit
    * le dire — et c'est alors la thèse du § 10 qu'il faudra rouvrir.
    */
   const A = C.arbre;
@@ -8575,39 +8608,61 @@ function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function buildStats() {
   const el = statsBody;
   el.innerHTML = '';
-  const h3 = (t) => { const h = document.createElement('h3'); h.textContent = t; el.appendChild(h); };
-  const sub = (t) => { const p = document.createElement('p'); p.className = 'st-sub'; p.textContent = t; el.appendChild(p); };
-  const regItems = REGARDS.concat([{ key: NONE_KEY, name: 'Non classé', color: NEUTRAL_REGARD }]);
+  const sub = (t, host) => { const p = document.createElement('p'); p.className = 'st-sub'; p.textContent = t; (host || el).appendChild(p); };
 
-  // -------- corpus
-  // Toutes les statistiques de ce panneau portent sur le CORPUS (contenus,
-  // références, images) — jamais sur l'appareil du tableau. Les regards ne
-  // se lisent que HORS du cadre « Vue d'ensemble » : dedans, la couleur dit
-  // un sous-thème (voir build-graph.mjs), pas un point de vue.
-  h3('Corpus');
-  sub(`Statistiques calculées sur les ${CORPUS.length} post-its de contenu — les ${PARATEXT_COUNT} nœuds d'appareil (titres de blocs, questions de recherche, présentations) restent sur la carte mais ne pèsent pas ici.`);
-  const HC = CORPUS.filter(n => n.section !== 's_frame');   // hors cadre : là où « regard » a un sens
-  const FR = CORPUS.filter(n => n.section === 's_frame');   // le cadre : là où « sous-thème » en a un
+  /**
+   * Un volet du sommaire : un <details> repliable. `open` le laisse déplié au
+   * chargement — réservé au strict nécessaire, le reste attend le clic. Rendu
+   * dans `parent` (le corps d'un autre volet, pour les répartitions
+   * imbriquées), sinon à la racine du panneau. Renvoie le CORPS où écrire.
+   */
+  const fold = (title, { open = false, sub: subt = '', parent = el, cls = '' } = {}) => {
+    const d = document.createElement('details');
+    d.className = 'st-fold' + (cls ? ' ' + cls : '');
+    if (open) d.open = true;
+    const s = document.createElement('summary');
+    s.innerHTML = `<span class="st-fold-t">${escHtml(title)}</span>`
+      + (subt ? `<span class="st-fold-c">${escHtml(subt)}</span>` : '');
+    d.appendChild(s);
+    const body = document.createElement('div'); body.className = 'st-fold-body';
+    d.appendChild(body);
+    parent.appendChild(d);
+    return body;
+  };
+
+  const regItems = REGARDS.concat([{ key: NONE_KEY, name: 'Non classé', color: NEUTRAL_REGARD }]);
+  const HC = CORPUS.filter(n => n.section !== 's_frame');   // hors du tronc : là où « regard » a un sens
+  const FR = CORPUS.filter(n => n.section === 's_frame');   // le tronc : là où « section » a ce sens
   const nConn = EDGES.filter(e => e.type === 'connector').length;
   const nConc = EDGES.filter(e => e.type === 'concept').length;
   const nIso = CORPUS.filter(n => (n.degree || 0) === 0).length;
   const nNoRegard = HC.filter(n => !n.regardKey).length;
   const degrees = CORPUS.map(n => n.degree || 0);
-  const grid = document.createElement('div'); grid.className = 'st-grid';
-  [[CORPUS.length, 'post-its de contenu'], [nConn, 'connecteurs tracés'], [nConc, 'fils « même texte »'],
-   [nIso, 'isolés (degré 0)'],
-   [`${nNoRegard} · ${Math.round(100 * nNoRegard / HC.length)} %`, 'sans regard (hors vue d’ensemble)'],
-   [`${median(CORPUS.map(n => (n.fullText || n.label || '').length))} car.`, 'texte médian']]
-    .forEach(([v, l]) => {
-      const d = document.createElement('div'); d.className = 'st-fig';
-      d.innerHTML = `<b>${v}</b><span>${l}</span>`; grid.appendChild(d);
-    });
-  el.appendChild(grid);
 
-  // -------- répartitions (cliquables : mise en lumière). Le pourcentage se
-  // rapporte au TOTAL de la répartition (corpus, hors-cadre, cadre…), passé
-  // par l'appelant — jamais à un dénominateur implicite qui mentirait.
-  const distList = (items, total) => {
+  // -------------------------------------------------------------------- Corpus
+  // Toutes les statistiques de ce panneau portent sur le CORPUS (contenus,
+  // références, images) — jamais sur l'appareil du tableau. Les regards ne se
+  // lisent que HORS du tronc : dedans, la couleur dit un
+  // une section (voir build-graph.mjs), pas un point de vue.
+  {
+    const host = fold('Corpus en chiffres', { open: true });
+    sub(`Statistiques calculées sur les ${CORPUS.length} post-its de contenu — les ${PARATEXT_COUNT} nœuds d'appareil (titres de blocs, questions de recherche, présentations) restent sur la carte mais ne pèsent pas ici.`, host);
+    const grid = document.createElement('div'); grid.className = 'st-grid';
+    [[CORPUS.length, 'post-its de contenu'], [nConn, 'connecteurs tracés'], [nConc, 'fils « même texte »'],
+     [nIso, 'isolés (degré 0)'],
+     [`${nNoRegard} · ${Math.round(100 * nNoRegard / HC.length)} %`, 'sans regard (hors du tronc)'],
+     [`${median(CORPUS.map(n => (n.fullText || n.label || '').length))} car.`, 'texte médian']]
+      .forEach(([v, l]) => {
+        const d = document.createElement('div'); d.className = 'st-fig';
+        d.innerHTML = `<b>${v}</b><span>${l}</span>`; grid.appendChild(d);
+      });
+    host.appendChild(grid);
+  }
+
+  // Une répartition (cliquable : mise en lumière). Le pourcentage se rapporte au
+  // TOTAL passé par l'appelant (corpus, hors du tronc, tronc…) — jamais à un
+  // dénominateur implicite qui mentirait.
+  const distList = (items, total, host) => {
     const max = Math.max(1, ...items.map(i => i.count));
     const wrap = document.createElement('div');
     [...items].sort((a, b) => b.count - a.count).forEach(it => {
@@ -8619,365 +8674,405 @@ function buildStats() {
       row.addEventListener('click', it.go);
       wrap.appendChild(row);
     });
-    el.appendChild(wrap);
+    (host || el).appendChild(wrap);
   };
-  h3('Répartition par section');
-  sub('Cliquer met la section en lumière sur la carte.');
-  distList(SECTIONS.map(s => ({
-    name: s.name, color: s.color, count: CORPUS.filter(n => n.section === s.id).length,
-    go: () => {
-      closeStats(); setTab('section'); setFocus('section', s.id);
-      flyToGroup(CORPUS.filter(n => n.section === s.id));
-    },
-  })), CORPUS.length);
-  h3('Répartition par regard');
-  sub(`Hors « Vue d'ensemble » (${HC.length} post-its) : dans le cadre, la couleur désigne un sous-thème, pas un regard. Cliquer met le regard en lumière sur la carte.`);
-  distList(regItems.map(r => ({
-    name: r.name, color: r.color, count: HC.filter(n => regardKeyOf(n) === r.key).length,
-    go: () => {
-      closeStats(); setTab('regard'); setFocus('regard', r.key);
-      // On cadre EXACTEMENT ce que la ligne compte : le hors-cadre, appareil
-      // éditorial exclu. Cadrer sur LEAVES emmenait sur 415 nœuds là où la
-      // ligne en annonçait 190 — tout le cadre « Vue d'ensemble » compris,
-      // c'est-à-dire précisément ce que le sous-titre venait d'exclure.
-      const cat = HC.filter(n => regardKeyOf(n) === r.key);
-      if (cat.length) flyToGroup(cat);
-    },
-  })), HC.length);
-  h3('Répartition dans le temps');
-  sub("Les quatre temps du tableau, relevés par l'horodatage de Miro — la seule donnée présente sur la totalité des post-its. Cliquer met la période en lumière sur la carte.");
-  distList(PERIODES.map(p => ({
-    name: `${p.name} · ${p.hint.split(' · ')[0]}`, color: p.color,
-    count: CORPUS.filter(n => n.periode === p.key).length,
-    go: () => {
-      closeStats(); setTab('quand'); setFocus('quand', p.key);
-      const cat = CORPUS.filter(n => n.periode === p.key);
-      if (cat.length) flyToGroup(cat);
-    },
-  })), CORPUS.length);
 
-  // La FORME porte sur TOUTES les feuilles, appareil compris — c'est le seul
-  // axe dont une classe EST l'appareil : l'écarter viderait sa propre ligne.
-  // Le sous-titre le dit, plutôt que de laisser un total qui ne tombe pas juste.
-  // Comme « Comment ? », cet axe classe TOUTES les feuilles : « aucun trait
-  // tracé » est une réponse, pas une absence de donnée — l'écarter viderait
-  // justement la classe qui mesure ce qu'on ignore.
-  h3('Répartition par place dans le raisonnement');
-  sub(`Lue dans le sens des flèches tracées à la main (« Pourquoi ? »). Les deux dernières classes disent ce que le tableau NE dit pas : un post-it relié sans flèche n'est pas hors du raisonnement, et un post-it sans trait n'a simplement jamais été relié. Calculée sur les ${LEAVES.length} nœuds de la carte.`);
-  distList(FLOW_DEFS.map(f => ({
-    name: f.name, color: f.color,
-    count: LEAVES.filter(n => n.__flow === f.key).length,
-    go: () => {
-      closeStats(); setTab('pourquoi'); setFocus('pourquoi', f.key);
-      const cat = LEAVES.filter(n => n.__flow === f.key);
-      if (cat.length) flyToGroup(cat);
-    },
-  })), LEAVES.length);
+  // -------------------------------------------------------------- Répartitions
+  // Un volet parent qui CONTIENT chaque répartition indépendamment dépliable :
+  // on n'ouvre que la question qu'on lit. Les libellés suivent le vocabulaire
+  // réel du tableau (« Qui ? » et non « regard », etc.).
+  {
+    const rep = fold('Répartitions', { sub: 'chaque question, séparément' });
+    const one = (title, subt, note, items, total) => {
+      const host = fold(title, { sub: subt, parent: rep, cls: 'st-sub-fold' });
+      sub(note, host);
+      distList(items, total, host);
+    };
 
-  h3('Répartition par forme');
-  sub(`Sous quelle forme la chose est dite (« Comment ? »). Seule répartition calculée sur les ${LEAVES.length} nœuds de la carte, appareil du tableau compris : il y forme une classe. Quatre post-its sur cinq sont de simples notes — décocher « Note » sur la carte montre le reste.`);
-  distList(FORMES.map(f => ({
-    name: f.name, color: f.color,
-    count: LEAVES.filter(n => n.forme === f.key).length,
-    go: () => {
-      closeStats(); setTab('comment'); setFocus('comment', f.key);
-      const cat = LEAVES.filter(n => n.forme === f.key);
-      if (cat.length) flyToGroup(cat);
-    },
-  })), LEAVES.length);
+    // Les DEUX parties de « Quoi ? », comme dans la légende : sections des
+    // branches et sections du tronc — pas d'agrégat « Tronc » (le tronc se lit
+    // par ses sections, jamais comme un bloc unique).
+    one('Sections des branches', 'Quoi ? · les treize blocs titrés',
+      'Cliquer met la section en lumière sur la carte.',
+      SECTIONS.filter(s => s.id !== 's_frame').map(s => ({
+        name: s.name, color: s.color, count: HC.filter(n => n.section === s.id).length,
+        go: () => {
+          closeStats(); setTab('section'); setFocus('section', s.id);
+          flyToGroup(HC.filter(n => n.section === s.id));
+        },
+      })), HC.length);
 
-  h3('Répartition par sujet du tronc');
-  sub(`Les ${FR.length} post-its du canevas, classés par la couleur de leur grappe — c'est ce que « Quoi ? » affiche quand on regarde le tronc. Cliquer y conduit et met le sujet en lumière.`);
-  distList(SOUSTHEMES.map(t => ({ key: t.key, name: t.name, color: t.color }))
-    .concat([{ key: NONE_KEY, name: 'Sans sous-thème', color: NEUTRAL_REGARD }])
-    .map(t => ({
-      name: t.name, color: t.color,
-      count: FR.filter(n => (n.sousTheme || NONE_KEY) === t.key).length,
-      go: () => {
-        // Les sous-thèmes vivent désormais DANS « Quoi ? », lisibles dans
-        // le tronc : on y mène le visiteur plutôt que d'ouvrir un axe disparu.
-        closeStats(); setScope('tronc'); setTab('section'); setFocus('section', t.key);
-        const cat = FR.filter(n => (n.sousTheme || NONE_KEY) === t.key);
-        if (cat.length) flyToGroup(cat);
-      },
-    })), FR.length);
+    one('Sections du tronc', 'Quoi ? · les onze grappes de couleur',
+      `Les ${FR.length} post-its du tronc, classés par la couleur de leur grappe — c'est ce que « Quoi ? » affiche quand on regarde le tronc. Cliquer y conduit et met la section en lumière.`,
+      SOUSTHEMES.map(t => ({ key: t.key, name: t.name, color: t.color }))
+        .concat([{ key: NONE_KEY, name: 'Sans section', color: NEUTRAL_REGARD }])
+        .map(t => ({
+          name: t.name, color: t.color,
+          count: FR.filter(n => (n.sousTheme || NONE_KEY) === t.key).length,
+          go: () => {
+            closeStats(); setScope('tronc'); setTab('section'); setFocus('section', t.key);
+            const cat = FR.filter(n => (n.sousTheme || NONE_KEY) === t.key);
+            if (cat.length) flyToGroup(cat);
+          },
+        })), FR.length);
 
-  // -------- croisement section × regard
-  h3('Croisement section × regard');
-  sub('Cliquer une cellule filtre la carte sur cette paire (les cases de la légende suivent). '
-    + 'La colonne « Vue d\'ensemble » ne compte que du non-classé : dans le cadre, la couleur dit un sous-thème, pas un regard. '
-    + 'La couverture varie fort d\'une section à l\'autre — une ligne creuse dit d\'abord que la couleur n\'a pas été posée là, pas qu\'un point de vue est absent.');
-  const cross = {}; let maxCell = 1;
-  CORPUS.forEach(n => {
-    const k = regardKeyOf(n) + '|' + n.section;
-    cross[k] = (cross[k] || 0) + 1;
-    if (cross[k] > maxCell) maxCell = cross[k];
-  });
-  const wrapX = document.createElement('div'); wrapX.className = 'xtab-wrap';
-  const tbl = document.createElement('table'); tbl.className = 'xtab';
-  const thead = document.createElement('tr');
-  thead.innerHTML = '<th class="rowname"></th>' + SECTIONS.map(s =>
-    `<th title="${s.name}"><span class="dot" style="color:${s.color};background:${s.color}"></span></th>`).join('');
-  tbl.appendChild(thead);
-  regItems.forEach(r => {
-    const tr = document.createElement('tr');
-    const name = document.createElement('td'); name.className = 'rowname'; name.title = r.name; name.textContent = r.name;
-    tr.appendChild(name);
-    SECTIONS.forEach(s => {
-      const c = cross[r.key + '|' + s.id] || 0;
-      const td = document.createElement('td');
-      td.textContent = c || '';
-      td.title = `${r.name} × ${s.name} : ${c}`;
-      if (c) td.style.background = `rgba(201,162,75,${(0.08 + 0.5 * c / maxCell).toFixed(2)})`;
-      td.addEventListener('click', () => {
-        if (!c) return;
-        // On MUTE les Sets (jamais les remplacer) : lignes de légende,
-        // badges et compteur pointent sur ces objets-là.
-        state.hiddenSections.clear();
-        SECTIONS.forEach(x => { if (x.id !== s.id) state.hiddenSections.add(x.id); });
-        state.hiddenRegards.clear();
-        regItems.forEach(x => { if (x.key !== r.key) state.hiddenRegards.add(x.key); });
-        syncLegendRows(); updateLegendBadges(); updateLegendCounts(); updateMini(); updateVisuals(); syncUrl();
-        closeStats();
-        // Zoom sur la CELLULE elle-même, pas sur l'ensemble du tableau : les
-        // post-its qui portent exactement ce regard ET cette section — même
-        // logique que les répartitions ci-dessus (flyToGroup, pas overview).
-        // Sur CORPUS, comme la cellule qu'on vient de lire : le chiffre et ce
-        // qu'on cadre doivent désigner le même ensemble.
-        flyToGroup(CORPUS.filter(n => regardKeyOf(n) === r.key && n.section === s.id));
-      });
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
-  });
-  wrapX.appendChild(tbl);
-  el.appendChild(wrapX);
+    one('Qui ?', 'les regards',
+      `Hors du tronc (${HC.length} post-its) : dans le tronc, la couleur désigne une section, pas un regard. Cliquer met le regard en lumière sur la carte.`,
+      regItems.map(r => ({
+        name: r.name, color: r.color, count: HC.filter(n => regardKeyOf(n) === r.key).length,
+        go: () => {
+          closeStats(); setTab('regard'); setFocus('regard', r.key);
+          // On cadre EXACTEMENT ce que la ligne compte : le hors-tronc, appareil
+          // éditorial exclu (sinon on emmène sur tout le tronc
+          // que le sous-titre venait d'exclure).
+          const cat = HC.filter(n => regardKeyOf(n) === r.key);
+          if (cat.length) flyToGroup(cat);
+        },
+      })), HC.length);
 
-  /**
-   * Croisement regard × regard : qui se relie à qui.
-   *
-   * Contrairement au croisement précédent (qui classe des NŒUDS), celui-ci
-   * compte des ARÊTES — pour chaque connecteur dont les DEUX bouts portent un
-   * regard connu, on incrémente la case du couple. La diagonale dit le
-   * dialogue AVEC SOI (un regard qui se relie à lui-même) ; les cases hors
-   * diagonale, le dialogue entre points de vue — la question de recherche
-   * posée par ce croisement : qui fait le pont entre quels regards.
-   *
-   * Restreint aux CONNECTEURS tracés à la main, à l'exclusion des fils
-   * « même texte » : un post-it répété ailleurs sur le tableau n'est pas un
-   * dialogue entre deux regards, c'est la même voix redite deux fois — le
-   * compter brouillerait la question posée.
-   *
-   * La matrice est SYMÉTRIQUE (A-B comme B-A) : un seul triangle s'affiche,
-   * diagonale comprise, l'autre moitié ne dirait rien de plus.
-   */
-  h3('Croisement regard × regard');
-  const classifiedConn = EDGES.filter(e => {
-    if (e.type !== 'connector') return false;
-    const a = nodeById.get(e.source), b = nodeById.get(e.target);
-    return a && b && a.regardKey && b.regardKey;
-  });
-  sub(`Compte les CONNECTEURS tracés à la main dont les deux extrémités ont un regard connu — `
-    + `${classifiedConn.length} sur ${nConn} au total (le reste implique un post‑it non classé). `
-    + `Cliquer une cellule filtre la carte sur ce couple de regards.`);
-  const cross2 = new Map();
-  classifiedConn.forEach(e => {
-    const a = nodeById.get(e.source).regardKey, b = nodeById.get(e.target).regardKey;
-    const ia = REGARDS.findIndex(r => r.key === a), ib = REGARDS.findIndex(r => r.key === b);
-    const key = ia <= ib ? a + '|' + b : b + '|' + a;
-    cross2.set(key, (cross2.get(key) || 0) + 1);
-  });
-  const maxCell2 = Math.max(1, ...cross2.values());
-  const wrapX2 = document.createElement('div'); wrapX2.className = 'xtab-wrap';
-  const tbl2 = document.createElement('table'); tbl2.className = 'xtab';
-  const thead2 = document.createElement('tr');
-  thead2.innerHTML = '<th class="rowname"></th>' + REGARDS.map(r =>
-    `<th title="${r.name}"><span class="dot" style="color:${r.color};background:${r.color}"></span></th>`).join('');
-  tbl2.appendChild(thead2);
-  REGARDS.forEach((rowR, i) => {
-    const tr = document.createElement('tr');
-    const name = document.createElement('td'); name.className = 'rowname'; name.title = rowR.name; name.textContent = rowR.name;
-    tr.appendChild(name);
-    REGARDS.forEach((colR, j) => {
-      const td = document.createElement('td');
-      if (j < i) { td.className = 'blank'; tr.appendChild(td); return; } // moitié basse : redirait le haut
-      const c = cross2.get(rowR.key + '|' + colR.key) || 0;
-      td.textContent = c || '';
-      td.title = i === j ? `${rowR.name} — ${c} connecteur${c > 1 ? 's' : ''} intra-regard`
-        : `${rowR.name} × ${colR.name} : ${c} connecteur${c > 1 ? 's' : ''}`;
-      if (i === j) td.classList.add('diag');
-      if (c) td.style.background = `rgba(201,162,75,${(0.08 + 0.5 * c / maxCell2).toFixed(2)})`;
-      td.addEventListener('click', () => {
-        if (!c) return;
-        state.hiddenSections.clear();  // la paire s'examine hors de tout filtre de section
-        state.hiddenRegards.clear();
-        regItems.forEach(x => { if (x.key !== rowR.key && x.key !== colR.key) state.hiddenRegards.add(x.key); });
-        syncLegendRows(); updateLegendBadges(); updateLegendCounts(); updateMini(); setTab('regard'); updateVisuals(); syncUrl();
-        closeStats();
-        // La cellule compte des ARÊTES, pas des nœuds : zoomer sur « tous les
-        // post-its de ces deux regards » montrerait aussi ceux qui n'ont
-        // AUCUN lien entre eux — pas le pont que le chiffre désigne. On ne
-        // cadre que les extrémités des connecteurs qui composent CE compte.
-        const zoneIds = new Set();
-        classifiedConn.forEach(e => {
-          const a = nodeById.get(e.source), b = nodeById.get(e.target);
-          const match = (a.regardKey === rowR.key && b.regardKey === colR.key)
-                     || (a.regardKey === colR.key && b.regardKey === rowR.key);
-          if (match) { zoneIds.add(a.id); zoneIds.add(b.id); }
-        });
-        flyToGroup([...zoneIds].map(id => nodeById.get(id)));
-      });
-      tr.appendChild(td);
-    });
-    tbl2.appendChild(tr);
-  });
-  wrapX2.appendChild(tbl2);
-  el.appendChild(wrapX2);
+    one('Quand ?', 'les quatre temps',
+      "Les quatre temps du tableau, relevés par l'horodatage de Miro — la seule donnée présente sur la totalité des post-its. Cliquer met la période en lumière sur la carte.",
+      PERIODES.map(p => ({
+        name: `${p.name} · ${p.hint.split(' · ')[0]}`, color: p.color,
+        count: CORPUS.filter(n => n.periode === p.key).length,
+        go: () => {
+          closeStats(); setTab('quand'); setFocus('quand', p.key);
+          const cat = CORPUS.filter(n => n.periode === p.key);
+          if (cat.length) flyToGroup(cat);
+        },
+      })), CORPUS.length);
 
-  // -------- hubs
-  h3('Nœuds les plus connectés');
-  sub(`Degré médian ${median(degrees)} · maximum ${Math.max(...degrees)}. Cliquer ouvre la fiche.`);
-  const hubs = [...CORPUS].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6);
-  const hubWrap = document.createElement('div');
-  hubs.forEach(n => {
-    const sec = SECTIONS.find(s => s.id === n.section);
-    const row = document.createElement('div'); row.className = 'st-row';
-    row.innerHTML = `<span class="dot" style="color:${sec.color};background:${sec.color};box-shadow:none"></span>` +
-      `<span class="st-name" style="flex:1" title="${escHtml((n.fullText || n.label).slice(0, 200))}">${escHtml(n.label)}</span>` +
-      `<span class="st-n">${n.degree || 0}</span>`;
-    row.addEventListener('click', () => { closeStats(); selectNode(n); });
-    hubWrap.appendChild(row);
-  });
-  el.appendChild(hubWrap);
+    // La FORME classe TOUTES les feuilles, appareil compris — c'est le seul axe
+    // dont une classe EST l'appareil : l'écarter viderait sa propre ligne. Le
+    // sous-titre le dit, plutôt que de laisser un total qui ne tombe pas juste.
+    one('Comment ?', 'la forme',
+      `Sous quelle forme la chose est dite. Seule répartition calculée sur les ${LEAVES.length} nœuds de la carte, appareil du tableau compris : il y forme une classe. Quatre post-its sur cinq sont de simples notes — décocher « Note » sur la carte montre le reste.`,
+      FORMES.map(f => ({
+        name: f.name, color: f.color,
+        count: LEAVES.filter(n => n.forme === f.key).length,
+        go: () => {
+          closeStats(); setTab('comment'); setFocus('comment', f.key);
+          const cat = LEAVES.filter(n => n.forme === f.key);
+          if (cat.length) flyToGroup(cat);
+        },
+      })), LEAVES.length);
 
-  // -------- lexique
-  h3('Lexique du corpus');
-  sub('Fréquence documentaire (nb de post-its contenant le terme) ; mots-outils exclus, formes non lemmatisées. Cliquer déplie le concordancier — le terme en contexte, post-it par post-it ; le survol montre les termes co-présents.');
-  const docsByTerm = getDocsByTerm();
-  const top = [...docsByTerm.entries()].map(([t, ids]) => ({ t, ids, df: ids.size }))
-    .filter(x => x.df >= 3).sort((a, b) => b.df - a.df).slice(0, 48);
-  // « Co-présent » ne doit désigner qu'UNE mesure dans tout le site : au moins
-  // COOC_MIN post-its partagés. L'infobulle des puces se contentait de 2 quand
-  // le réseau de co-occurrences et le volet de recherche en exigeaient 3 — deux
-  // seuils sous un seul mot, dans un même panneau.
-  top.forEach(a => {
-    a.rel = top.filter(b => b !== a)
-      .map(b => ({ t: b.t, o: intersectSize(a.ids, b.ids) }))
-      .filter(x => x.o >= COOC_MIN).sort((x, y) => y.o - x.o).slice(0, 4).map(x => x.t);
-  });
-  const lexWrap = document.createElement('div');
-  // Le concordancier : UN panneau partagé sous la grille de puces, pas un
-  // dépli par puce — un seul terme s'examine à la fois (même principe que
-  // `activeBranch` pour les chemins), et son ouverture ne perturbe pas la
-  // disposition des puces elles-mêmes.
-  const kwicPanel = document.createElement('div'); kwicPanel.className = 'kwic-wrap'; kwicPanel.hidden = true;
-  let kwicTerm = null;
-  top.forEach(x => {
-    const chip = document.createElement('span'); chip.className = 'lex-chip';
-    chip.innerHTML = `${escHtml(x.t)}<span class="df">${x.df}</span>`;
-    if (x.rel.length) chip.title = 'co-présent avec : ' + x.rel.join(', ');
-    chip.addEventListener('click', () => {
-      const reopening = kwicTerm !== x.t;
-      lexWrap.querySelectorAll('.lex-chip.on').forEach(c => c.classList.remove('on'));
-      if (!reopening) { kwicTerm = null; kwicPanel.hidden = true; return; }
-      kwicTerm = x.t;
-      chip.classList.add('on');
-      renderKwic(x);
-    });
-    lexWrap.appendChild(chip);
-  });
-  el.appendChild(lexWrap);
-  el.appendChild(kwicPanel);
-
-  /**
-   * Le concordancier : pour un terme du lexique, chaque post-it qui le
-   * contient, avec le terme en CONTEXTE — pas juste une liste de nœuds à
-   * rouvrir un par un. Réutilise l'ensemble `ids` déjà calculé pour la
-   * fréquence documentaire (`docsByTerm`) : aucun nouveau balayage du corpus.
-   *
-   * L'extraction du contexte joue sur DEUX textes du même nœud : la position
-   * du terme se cherche dans le texte NORMALISÉ (normFr — la même fonction
-   * que la recherche et le lexique, accents et casse aplatis), mais l'extrait
-   * AFFICHÉ vient du texte D'ORIGINE, à la MÊME position. Ça tient parce que
-   * normFr préserve la longueur caractère à caractère : aplatir la casse ne
-   * déplace rien, et décomposer un accent (NFD) puis effacer sa marque
-   * ramène le caractère à sa position de départ. L'extrait garde donc ses
-   * accents et sa casse réels — ce n'est pas le texte de travail qu'on montre.
-   */
-  const KWIC_PAD = 70, KWIC_MAX = 60;
-  function renderKwic(x) {
-    kwicPanel.hidden = false;
-    kwicPanel.innerHTML = '';
-    const head = document.createElement('div'); head.className = 'kwic-head';
-    const total = x.ids.size;
-    const headLeft = document.createElement('span');
-    headLeft.innerHTML = `« <b>${escHtml(x.t)}</b> » — ${total} post‑it${total > 1 ? 's' : ''}`
-      + (total > KWIC_MAX ? `, ${KWIC_MAX} affichés` : '');
-    const searchLink = document.createElement('span'); searchLink.className = 'kwic-search-link';
-    searchLink.textContent = '🔍 chercher ce terme';
-    searchLink.addEventListener('click', () => {
-      closeStats();
-      searchInput.value = x.t;
-      searchInput.dispatchEvent(new Event('input'));
-    });
-    head.appendChild(headLeft); head.appendChild(searchLink);
-    kwicPanel.appendChild(head);
-
-    // Frontières de mot : `\b` fonctionne même à côté d'une apostrophe ou
-    // d'un trait d'union (ni l'un ni l'autre n'est un caractère de mot pour
-    // `\b`) — « l'humanité » normalisé en « l'humanite » matche bien après
-    // l'apostrophe, sans reproduire ici les règles d'élision de tokenize().
-    const re = new RegExp('\\b' + escapeRegExp(x.t) + '\\b', 'i');
-    const rows = [...x.ids].map(id => nodeById.get(id)).filter(Boolean)
-      .sort((a, b) => (a.label || '').localeCompare(b.label || ''))
-      .slice(0, KWIC_MAX);
-
-    rows.forEach(n => {
-      const text = n.fullText || n.label || '';
-      const norm = normFr(text);
-      const m = re.exec(norm);
-      let snippetHtml;
-      if (m) {
-        const i = m.index, j = i + m[0].length;
-        const from = Math.max(0, i - KWIC_PAD), to = Math.min(text.length, j + KWIC_PAD);
-        const pre = (from > 0 ? '… ' : '') + text.slice(from, i);
-        const hit = text.slice(i, j);
-        const post = text.slice(j, to) + (to < text.length ? ' …' : '');
-        snippetHtml = `${escHtml(pre)}<mark>${escHtml(hit)}</mark>${escHtml(post)}`;
-      } else {
-        // Garde-fou, jamais une ligne vide : `ids` vient de tokenize(), qui
-        // réduit encore le mot (élisions, ponctuation) au-delà de normFr —
-        // un cas résiduel où la forme exacte échappe à ce \b affiche le
-        // texte brut plutôt que de faire comme si le terme n'était pas là.
-        snippetHtml = escHtml(text.slice(0, 2 * KWIC_PAD)) + (text.length > 2 * KWIC_PAD ? ' …' : '');
-      }
-      const sec = SECTIONS.find(s => s.id === n.section);
-      const row = document.createElement('div'); row.className = 'kwic-row';
-      row.innerHTML = `<span class="dot" style="background:${sec.color};color:${sec.color}"></span>`
-        + `<span class="kwic-text">${snippetHtml}</span>`;
-      row.title = 'Ouvrir la fiche de ce post-it';
-      row.addEventListener('click', () => { closeStats(); selectNode(n); });
-      kwicPanel.appendChild(row);
-    });
-    if (total > KWIC_MAX) {
-      const more = document.createElement('div'); more.className = 'kwic-more';
-      more.textContent = `… ${total - KWIC_MAX} de plus, non affichés ici — « 🔍 chercher ce terme » ci-dessus les montre tous sur la carte.`;
-      kwicPanel.appendChild(more);
-    }
+    // Comme « Comment ? », cet axe classe TOUTES les feuilles : « aucun trait
+    // tracé » est une réponse, pas une absence de donnée.
+    one('Pourquoi ?', 'la place dans le raisonnement',
+      `Lue dans le sens des flèches tracées à la main. Les deux dernières classes disent ce que le tableau NE dit pas : un post-it relié sans flèche n'est pas hors du raisonnement, et un post-it sans trait n'a simplement jamais été relié. Calculée sur les ${LEAVES.length} nœuds de la carte.`,
+      FLOW_DEFS.map(f => ({
+        name: f.name, color: f.color,
+        count: LEAVES.filter(n => n.__flow === f.key).length,
+        go: () => {
+          closeStats(); setTab('pourquoi'); setFocus('pourquoi', f.key);
+          const cat = LEAVES.filter(n => n.__flow === f.key);
+          if (cat.length) flyToGroup(cat);
+        },
+      })), LEAVES.length);
   }
 
-  // -------- réseau de co-occurrences
-  h3('Réseau de co-occurrences');
-  sub(`Deux termes sont liés s'ils apparaissent ensemble dans au moins ${COOC_MIN} post-its ; l'épaisseur suit ce nombre, la couleur est la section dominante du terme. Les termes sans co-présence suffisante n'y figurent pas. Cliquer un terme lance la recherche.`);
-  const coocCanvas = document.createElement('canvas');
-  coocCanvas.className = 'cooc-canvas';
-  coocCanvas.setAttribute('role', 'img');
-  coocCanvas.setAttribute('aria-label', 'Réseau visuel de co-occurrences ; le lexique cliquable qui précède donne accès aux mêmes termes.');
-  const coocCaption = document.createElement('div');
-  coocCaption.className = 'cooc-caption';
-  el.appendChild(coocCanvas);
-  el.appendChild(coocCaption);
-  buildCoocGraph(coocCanvas, coocCaption, top);
+  // ---------------------------------------------------------------- Croisement
+  // Un axe FACE À UN AUTRE — ou à lui-même. Deux menus, la table se recalcule à
+  // chaque changement.
+  //
+  //  • deux axes DIFFÉRENTS → contingence : chaque post-it de contenu compté
+  //    une fois, selon ses DEUX réponses.
+  //  • un axe FACE À LUI-MÊME → dialogue : on ne compte plus des post-its mais
+  //    les CONNECTEURS tracés à la main dont les deux bouts tombent dans deux
+  //    catégories de l'axe (fils « même texte » exclus). Matrice symétrique —
+  //    un seul triangle, diagonale = dialogue d'une catégorie avec elle-même.
+  {
+    const host = fold('Croisement', { sub: 'un axe × un autre, ou lui-même' });
+
+    // Les axes croisables : les cinq questions du tableau. Chacun sait CLASSER
+    // un post-it (keyOf) et lister ses catégories (items) ; sa clé est celle de
+    // LEGEND, si bien que filtrer la carte au clic est direct.
+    const CX = {
+      section:  { label: 'Quoi ?',     keyOf: n => n.section,           items: SECTIONS.map(s => ({ key: s.id,  name: s.name, color: s.color })) },
+      regard:   { label: 'Qui ?',      keyOf: n => regardKeyOf(n),      items: regItems.map(r => ({ key: r.key, name: r.name, color: r.color })) },
+      quand:    { label: 'Quand ?',    keyOf: n => n.periode || NONE_KEY, items: PERIODES.map(p => ({ key: p.key, name: p.name, color: p.color })) },
+      comment:  { label: 'Comment ?',  keyOf: n => n.forme || NONE_KEY, items: FORMES.map(f => ({ key: f.key, name: f.name, color: f.color })) },
+      pourquoi: { label: 'Pourquoi ?', keyOf: n => n.__flow || NONE_KEY, items: FLOW_DEFS.map(f => ({ key: f.key, name: f.name, color: f.color })) },
+    };
+    const CX_ORDER = ['section', 'regard', 'quand', 'comment', 'pourquoi'];
+
+    const pick = document.createElement('div'); pick.className = 'st-xpick';
+    const mkSel = (val) => {
+      const s = document.createElement('select'); s.className = 'st-xsel';
+      CX_ORDER.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = CX[k].label; s.appendChild(o); });
+      s.value = val; return s;
+    };
+    const selA = mkSel('section'), selB = mkSel('regard');
+    pick.appendChild(selA);
+    const times = document.createElement('span'); times.className = 'st-xtimes'; times.textContent = '×';
+    pick.appendChild(times); pick.appendChild(selB);
+    host.appendChild(pick);
+    const note = document.createElement('p'); note.className = 'st-sub'; host.appendChild(note);
+    const mount = document.createElement('div'); host.appendChild(mount);
+
+    // Isoler sur la carte : on MUTE les Sets de LEGEND (jamais les remplacer) —
+    // lignes de légende, badges et compteur pointent sur ces objets-là. On part
+    // de TOUT visible (la paire s'examine hors de tout autre filtre), puis on
+    // ne laisse que la (les) catégorie(s) cliquée(s).
+    const solo = (axKey, items, ...keep) => {
+      AXIS_KEYS.forEach(ax => LEGEND[ax].hidden.clear());
+      const L = LEGEND[axKey];
+      items.forEach(it => { if (!keep.includes(it.key)) L.hidden.add(it.key); });
+    };
+    const soloPair = (axA, itemsA, keyA, axB, itemsB, keyB) => {
+      AXIS_KEYS.forEach(ax => LEGEND[ax].hidden.clear());
+      itemsA.forEach(it => { if (it.key !== keyA) LEGEND[axA].hidden.add(it.key); });
+      itemsB.forEach(it => { if (it.key !== keyB) LEGEND[axB].hidden.add(it.key); });
+    };
+    const afterFilter = (tab) => { syncLegendRows(); updateLegendBadges(); updateLegendCounts(); updateMini(); setTab(tab); updateVisuals(); syncUrl(); };
+
+    const render = () => {
+      const aKey = selA.value, bKey = selB.value;
+      mount.innerHTML = '';
+      if (aKey === bKey) renderLinkCross(aKey, CX[aKey]);
+      else renderNodeCross(aKey, CX[aKey], bKey, CX[bKey]);
+    };
+    selA.addEventListener('change', render);
+    selB.addEventListener('change', render);
+
+    function heatCell(td, v, maxCell) {
+      td.textContent = v || '';
+      if (v) td.style.background = `rgba(201,162,75,${(0.08 + 0.5 * v / maxCell).toFixed(2)})`;
+    }
+
+    // CONTINGENCE — deux axes différents. Chaque post-it de contenu tombe dans
+    // une case (sa réponse A × sa réponse B). Lignes/colonnes vides retirées.
+    function renderNodeCross(aKey, A, bKey, B) {
+      note.textContent = `Chaque post-it de contenu compté une fois, selon sa réponse à « ${A.label} » (lignes) et « ${B.label} » (colonnes). Cliquer une cellule isole la paire sur la carte.`;
+      const cnt = new Map(); let maxCell = 1;
+      CORPUS.forEach(n => {
+        const k = A.keyOf(n) + '|' + B.keyOf(n);
+        const v = (cnt.get(k) || 0) + 1; cnt.set(k, v);
+        if (v > maxCell) maxCell = v;
+      });
+      const rows = A.items.filter(r => B.items.some(c => cnt.get(r.key + '|' + c.key)));
+      const cols = B.items.filter(c => A.items.some(r => cnt.get(r.key + '|' + c.key)));
+      if (!rows.length) { const p = document.createElement('p'); p.className = 'st-sub'; p.textContent = 'Aucun croisement à afficher pour cette paire.'; mount.appendChild(p); return; }
+      const wrap = document.createElement('div'); wrap.className = 'xtab-wrap';
+      const tbl = document.createElement('table'); tbl.className = 'xtab';
+      const thead = document.createElement('tr');
+      thead.innerHTML = '<th class="rowname"></th>' + cols.map(c =>
+        `<th title="${escHtml(c.name)}"><span class="dot" style="color:${c.color};background:${c.color}"></span></th>`).join('');
+      tbl.appendChild(thead);
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const nm = document.createElement('td'); nm.className = 'rowname'; nm.title = r.name;
+        nm.innerHTML = `<span class="dot" style="color:${r.color};background:${r.color}"></span>${escHtml(r.name)}`;
+        tr.appendChild(nm);
+        cols.forEach(c => {
+          const v = cnt.get(r.key + '|' + c.key) || 0;
+          const td = document.createElement('td');
+          heatCell(td, v, maxCell);
+          td.title = `${r.name} × ${c.name} : ${v}`;
+          if (v) td.addEventListener('click', () => {
+            soloPair(aKey, A.items, r.key, bKey, B.items, c.key);
+            afterFilter(aKey);
+            closeStats();
+            // On cadre les post-its de la cellule elle-même : le chiffre lu et
+            // ce qu'on cadre désignent le même ensemble.
+            flyToGroup(CORPUS.filter(n => A.keyOf(n) === r.key && B.keyOf(n) === c.key));
+          });
+          tr.appendChild(td);
+        });
+        tbl.appendChild(tr);
+      });
+      wrap.appendChild(tbl); mount.appendChild(wrap);
+    }
+
+    // DIALOGUE — un axe face à lui-même : on compte les CONNECTEURS tracés à la
+    // main dont les deux bouts portent une réponse CONNUE (non classé exclu),
+    // fils « même texte » exclus. Matrice symétrique : triangle haut seul.
+    function renderLinkCross(aKey, A) {
+      // « Non classé » n'est pas un interlocuteur : on l'ôte de la matrice du
+      // dialogue (le filtre au clic, lui, part de A.items complet pour bien
+      // éteindre le non-classé sur la carte).
+      const cats = A.items.filter(it => it.key !== NONE_KEY);
+      const idx = new Map(cats.map((it, i) => [it.key, i]));
+      const conns = EDGES.filter(e => {
+        if (e.type !== 'connector') return false;
+        const a = nodeById.get(e.source), b = nodeById.get(e.target);
+        if (!a || !b) return false;
+        const ka = A.keyOf(a), kb = A.keyOf(b);
+        return ka !== NONE_KEY && kb !== NONE_KEY && idx.has(ka) && idx.has(kb);
+      });
+      note.textContent = `Compte les connecteurs tracés à la main dont les deux extrémités portent une réponse connue à « ${A.label} » — ${conns.length} sur ${nConn} au total (le reste implique un post-it non classé ; fils « même texte » exclus). La diagonale dit le dialogue d'une catégorie avec elle-même. Cliquer une cellule isole le couple.`;
+      const cnt = new Map();
+      conns.forEach(e => {
+        const ka = A.keyOf(nodeById.get(e.source)), kb = A.keyOf(nodeById.get(e.target));
+        const key = idx.get(ka) <= idx.get(kb) ? ka + '|' + kb : kb + '|' + ka;
+        cnt.set(key, (cnt.get(key) || 0) + 1);
+      });
+      const maxCell = Math.max(1, ...cnt.values());
+      const wrap = document.createElement('div'); wrap.className = 'xtab-wrap';
+      const tbl = document.createElement('table'); tbl.className = 'xtab';
+      const thead = document.createElement('tr');
+      thead.innerHTML = '<th class="rowname"></th>' + cats.map(c =>
+        `<th title="${escHtml(c.name)}"><span class="dot" style="color:${c.color};background:${c.color}"></span></th>`).join('');
+      tbl.appendChild(thead);
+      cats.forEach((rowR, i) => {
+        const tr = document.createElement('tr');
+        const nm = document.createElement('td'); nm.className = 'rowname'; nm.title = rowR.name;
+        nm.innerHTML = `<span class="dot" style="color:${rowR.color};background:${rowR.color}"></span>${escHtml(rowR.name)}`;
+        tr.appendChild(nm);
+        cats.forEach((colR, j) => {
+          const td = document.createElement('td');
+          if (j < i) { td.className = 'blank'; tr.appendChild(td); return; }  // moitié basse : redirait le haut
+          const v = cnt.get(rowR.key + '|' + colR.key) || 0;
+          heatCell(td, v, maxCell);
+          td.title = i === j ? `${rowR.name} — ${v} connecteur${v > 1 ? 's' : ''} internes`
+            : `${rowR.name} × ${colR.name} : ${v} connecteur${v > 1 ? 's' : ''}`;
+          if (i === j) td.classList.add('diag');
+          if (v) td.addEventListener('click', () => {
+            solo(aKey, A.items, rowR.key, colR.key);
+            afterFilter(aKey);
+            closeStats();
+            // La cellule compte des ARÊTES, pas des nœuds : on ne cadre que les
+            // extrémités des connecteurs qui composent CE compte, pas tous les
+            // post-its des deux catégories.
+            const ids = new Set();
+            conns.forEach(e => {
+              const a = nodeById.get(e.source), b = nodeById.get(e.target);
+              const ka = A.keyOf(a), kb = A.keyOf(b);
+              const match = (ka === rowR.key && kb === colR.key) || (ka === colR.key && kb === rowR.key);
+              if (match) { ids.add(a.id); ids.add(b.id); }
+            });
+            flyToGroup([...ids].map(id => nodeById.get(id)));
+          });
+          tr.appendChild(td);
+        });
+        tbl.appendChild(tr);
+      });
+      wrap.appendChild(tbl); mount.appendChild(wrap);
+    }
+
+    render();
+  }
+
+  // ----------------------------------------------------------------------- hubs
+  {
+    const host = fold('Nœuds les plus connectés');
+    sub(`Degré médian ${median(degrees)} · maximum ${Math.max(...degrees)}. Cliquer ouvre la fiche.`, host);
+    const hubs = [...CORPUS].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6);
+    const hubWrap = document.createElement('div');
+    hubs.forEach(n => {
+      const sec = SECTIONS.find(s => s.id === n.section);
+      const row = document.createElement('div'); row.className = 'st-row';
+      row.innerHTML = `<span class="dot" style="color:${sec.color};background:${sec.color};box-shadow:none"></span>` +
+        `<span class="st-name" style="flex:1" title="${escHtml((n.fullText || n.label).slice(0, 200))}">${escHtml(n.label)}</span>` +
+        `<span class="st-n">${n.degree || 0}</span>`;
+      row.addEventListener('click', () => { closeStats(); selectNode(n); });
+      hubWrap.appendChild(row);
+    });
+    host.appendChild(hubWrap);
+  }
+
+  // -------------------------------------------------------------------- lexique
+  {
+    const host = fold('Lexique du corpus');
+    sub('Fréquence documentaire (nb de post-its contenant le terme) ; mots-outils exclus, formes non lemmatisées. Cliquer déplie le concordancier — le terme en contexte, post-it par post-it ; le survol montre les termes co-présents.', host);
+    const docsByTerm = getDocsByTerm();
+    const top = [...docsByTerm.entries()].map(([t, ids]) => ({ t, ids, df: ids.size }))
+      .filter(x => x.df >= 3).sort((a, b) => b.df - a.df).slice(0, 48);
+    top.forEach(a => {
+      a.rel = top.filter(b => b !== a)
+        .map(b => ({ t: b.t, o: intersectSize(a.ids, b.ids) }))
+        .filter(x => x.o >= COOC_MIN).sort((x, y) => y.o - x.o).slice(0, 4).map(x => x.t);
+    });
+    const lexWrap = document.createElement('div');
+    // Le concordancier : UN panneau partagé sous la grille de puces, pas un
+    // dépli par puce — un seul terme s'examine à la fois.
+    const kwicPanel = document.createElement('div'); kwicPanel.className = 'kwic-wrap'; kwicPanel.hidden = true;
+    let kwicTerm = null;
+    top.forEach(x => {
+      const chip = document.createElement('span'); chip.className = 'lex-chip';
+      chip.innerHTML = `${escHtml(x.t)}<span class="df">${x.df}</span>`;
+      if (x.rel.length) chip.title = 'co-présent avec : ' + x.rel.join(', ');
+      chip.addEventListener('click', () => {
+        const reopening = kwicTerm !== x.t;
+        lexWrap.querySelectorAll('.lex-chip.on').forEach(c => c.classList.remove('on'));
+        if (!reopening) { kwicTerm = null; kwicPanel.hidden = true; return; }
+        kwicTerm = x.t;
+        chip.classList.add('on');
+        renderKwic(x);
+      });
+      lexWrap.appendChild(chip);
+    });
+    host.appendChild(lexWrap);
+    host.appendChild(kwicPanel);
+
+    const KWIC_PAD = 70, KWIC_MAX = 60;
+    function renderKwic(x) {
+      kwicPanel.hidden = false;
+      kwicPanel.innerHTML = '';
+      const head = document.createElement('div'); head.className = 'kwic-head';
+      const total = x.ids.size;
+      const headLeft = document.createElement('span');
+      headLeft.innerHTML = `« <b>${escHtml(x.t)}</b> » — ${total} post‑it${total > 1 ? 's' : ''}`
+        + (total > KWIC_MAX ? `, ${KWIC_MAX} affichés` : '');
+      const searchLink = document.createElement('span'); searchLink.className = 'kwic-search-link';
+      searchLink.textContent = '🔍 chercher ce terme';
+      searchLink.addEventListener('click', () => {
+        closeStats();
+        searchInput.value = x.t;
+        searchInput.dispatchEvent(new Event('input'));
+      });
+      head.appendChild(headLeft); head.appendChild(searchLink);
+      kwicPanel.appendChild(head);
+
+      const re = new RegExp('\\b' + escapeRegExp(x.t) + '\\b', 'i');
+      const rows = [...x.ids].map(id => nodeById.get(id)).filter(Boolean)
+        .sort((a, b) => (a.label || '').localeCompare(b.label || ''))
+        .slice(0, KWIC_MAX);
+
+      rows.forEach(n => {
+        const text = n.fullText || n.label || '';
+        const norm = normFr(text);
+        const m = re.exec(norm);
+        let snippetHtml;
+        if (m) {
+          const i = m.index, j = i + m[0].length;
+          const from = Math.max(0, i - KWIC_PAD), to = Math.min(text.length, j + KWIC_PAD);
+          const pre = (from > 0 ? '… ' : '') + text.slice(from, i);
+          const hit = text.slice(i, j);
+          const post = text.slice(j, to) + (to < text.length ? ' …' : '');
+          snippetHtml = `${escHtml(pre)}<mark>${escHtml(hit)}</mark>${escHtml(post)}`;
+        } else {
+          snippetHtml = escHtml(text.slice(0, 2 * KWIC_PAD)) + (text.length > 2 * KWIC_PAD ? ' …' : '');
+        }
+        const sec = SECTIONS.find(s => s.id === n.section);
+        const row = document.createElement('div'); row.className = 'kwic-row';
+        row.innerHTML = `<span class="dot" style="background:${sec.color};color:${sec.color}"></span>`
+          + `<span class="kwic-text">${snippetHtml}</span>`;
+        row.title = 'Ouvrir la fiche de ce post-it';
+        row.addEventListener('click', () => { closeStats(); selectNode(n); });
+        kwicPanel.appendChild(row);
+      });
+      if (total > KWIC_MAX) {
+        const more = document.createElement('div'); more.className = 'kwic-more';
+        more.textContent = `… ${total - KWIC_MAX} de plus, non affichés ici — « 🔍 chercher ce terme » ci-dessus les montre tous sur la carte.`;
+        kwicPanel.appendChild(more);
+      }
+    }
+
+    // ------------------------------------------------- réseau de co-occurrences
+    const netHost = fold('Réseau de co-occurrences');
+    sub(`Deux termes sont liés s'ils apparaissent ensemble dans au moins ${COOC_MIN} post-its ; l'épaisseur suit ce nombre, la couleur est la section dominante du terme. Les termes sans co-présence suffisante n'y figurent pas. Cliquer un terme lance la recherche.`, netHost);
+    const coocCanvas = document.createElement('canvas');
+    coocCanvas.className = 'cooc-canvas';
+    coocCanvas.setAttribute('role', 'img');
+    coocCanvas.setAttribute('aria-label', 'Réseau visuel de co-occurrences ; le lexique cliquable qui précède donne accès aux mêmes termes.');
+    const coocCaption = document.createElement('div');
+    coocCaption.className = 'cooc-caption';
+    netHost.appendChild(coocCanvas);
+    netHost.appendChild(coocCaption);
+    buildCoocGraph(coocCanvas, coocCaption, top);
+  }
 }
 
 /**
