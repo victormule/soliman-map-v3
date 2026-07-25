@@ -849,7 +849,7 @@
                margin-top:3px; padding:2px 4px; border-radius:5px; cursor:pointer; display:inline-block; }
   .pp-via-add:hover{ color: var(--gold); background: rgba(255,255,255,0.04); }
   /* La clé de lecture du TRAIT (la couleur, elle, dit la branche) : plein pour un
-     connecteur tracé, tirets pour un fil « même texte » — comme sur la carte. */
+     connecteur tracé, tirets pour un écho — comme sur la carte. */
   .pp-legend{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:6px; padding-top:7px;
               border-top:1px solid var(--border); font-family: var(--mono); font-size:8.5px;
               letter-spacing:.03em; color: var(--ink-faint); cursor:help; }
@@ -1541,7 +1541,7 @@
       travail ; s'y ajoutent des images, des références et l'<b>appareil</b> du
       tableau (titres de blocs, questions de recherche), que la fiche de chaque
       nœud distingue. Les <b>connecteurs</b> sont les rapprochements que
-      quelqu'un a réellement tracés ; les fils « même texte », <b>calculés</b>,
+      quelqu'un a réellement tracés ; les échos, <b>calculés</b>,
       relient un même propos répété à deux endroits. La section
       tableau est un <b>arbre</b> : un <b>tronc</b> (un tiers des
       nœuds) et treize <b>branches</b>. Le tronc ne résume pas les branches — il
@@ -1629,7 +1629,7 @@
         l'étiquette, jamais dans le texte intégral. La <b>légende du
         tableau</b> (les pastilles de couleurs des regards), elle, est écartée
         du graphe : comptée comme corpus, elle gonflait chaque regard d'une
-        unité et tissait de faux fils « même texte ».</p>
+        unité et tissait de faux échos.</p>
       <div class="md-sub">Ce que le build a écarté, et pourquoi</div>
       <div class="md-census" id="md-census"></div>
     </details>
@@ -1701,7 +1701,7 @@
       <p>Deux familles d'arêtes, distinguées à l'écran comme dans les calculs :</p>
       <div class="md-params">
         <div class="md-p"><span>Connecteurs · traits tracés à la main</span><b id="md-e-conn">…</b></div>
-        <div class="md-p"><span>Fils « même texte » · propos répété ailleurs</span><b id="md-e-conc">…</b></div>
+        <div class="md-p"><span>Échos · un propos répété ailleurs</span><b id="md-e-conc">…</b></div>
         <div class="md-p"><span>Connecteurs ignorés · une extrémité écartée</span><b id="md-e-dangling">…</b></div>
         <div class="md-p"><span>Pointes de flèche · conservées</span><b id="md-e-arrows">…</b></div>
         <div class="md-p"><span>Traits en pointillé · conservés</span><b id="md-e-dotted">…</b></div>
@@ -1721,7 +1721,7 @@
         ce qui a été tracé, et reste libre d'en faire une lecture que nous ne
         lui imposons pas.</p>
       <p>Les connecteurs ne sont <b>pas reconstruits</b> : ce sont les traits que
-        quelqu'un a réellement tirés sur le tableau. Les fils « même texte »
+        quelqu'un a réellement tirés sur le tableau. Les échos
         rapprochent les post‑its dont le texte, réduit (casse ignorée, espaces
         écrasés), est identique. Chaque groupe de répétitions est <b>enfilé en
         chaîne</b> (n − 1 arêtes) et non en clique (n(n−1)/2) : la clique dirait la
@@ -1795,7 +1795,7 @@
         présents se révèlent dans leur ordre de création. Les sections, qui
         structurent la légende et la disposition mais ne sont pas dessinées
         comme des nœuds, ne participent pas à ce récit visuel. Chaque trait
-        attend que ses deux extrémités existent ; les liens « même texte »,
+        attend que ses deux extrémités existent ; les échos,
         calculés et donc sans date propre, paraissent avec le second post-it de
         leur paire.</p>
       <div class="md-params" id="md-intro-chrono"></div>
@@ -2186,7 +2186,7 @@
         nœuds : pour chaque connecteur tracé à la main dont les deux extrémités
         ont un regard connu, la case du couple s'incrémente — la diagonale dit le
         dialogue d'un regard avec lui‑même, le reste le pont entre deux points de
-        vue. Restreint aux connecteurs, à l'exclusion des fils « même texte » :
+        vue. Restreint aux connecteurs, à l'exclusion des échos :
         un post‑it répété ailleurs n'est pas un dialogue, c'est la même voix
         redite. Matrice symétrique, un seul triangle affiché.</p>
     </details>
@@ -2217,7 +2217,7 @@
           hésitations, les redites et les partis pris de ses auteur·rices — c'est
           d'ailleurs ce qu'il a d'intéressant. Le <b>tronc</b> n'y est pas
           un résumé mais un <b>point de départ</b> : il précède les branches de
-          cinq jours, et les fils « même texte » qui le relient à elles partent
+          cinq jours, et les échos qui le relient à elles partent
           de lui dans 125 cas sur 129 — le tableau se lit donc du tronc vers
           ses développements, non l'inverse.</li>
       </ul>
@@ -2462,7 +2462,7 @@ const FRAME_COLOR = (SECTIONS.find(s => s.id === 's_frame') || {}).color || '#d9
  * L'ARBORESCENCE — l'étendue qu'on regarde. Le tableau est deux corpus, et la
  * mesure l'établit sans appel (le décompte vit dans census.arbre) : des liens
  * internes au tronc, des liens internes aux branches, et ceux qui TRAVERSENT
- * la frontière sont TOUS des fils « même texte » — calculés par nous, jamais
+ * la frontière sont TOUS des échos — calculés par nous, jamais
  * tracés à la main (crossConnector = 0). Personne n'a jamais relié à la main un
  * post-it du tronc à un post-it de branche.
  *
@@ -2480,7 +2480,7 @@ const FRAME_COLOR = (SECTIONS.find(s => s.id === 's_frame') || {}).color || '#d9
  */
 const SCOPES = [
   { key: 'arbre',    label: 'Arbre',    title: "L'arbre entier",
-    hint: "Le tableau entier — le tronc, les branches, et les fils « même texte » qui les relient.",
+    hint: "Le tableau entier — le tronc, les branches, et les échos qui les relient.",
     has: () => true },
   { key: 'tronc',    label: 'Tronc',    title: 'Le tronc',
     hint: "La question de départ, dépliée du 23 au 27 octobre 2025, avant l'atelier. Sa couleur y désigne une section, jamais un regard.",
@@ -2616,7 +2616,7 @@ const COMP_COLOR = Object.fromEntries(COMP_DEFS.map(c => [c.key, c.color]));
  *
  * Le recalcul est légitime parce que la frontière est réelle : aucun connecteur
  * tracé à la main ne relie le tronc aux branches (voir SCOPES). Les seuls liens
- * qu'une restriction coupe sont des fils « même texte », que nous calculons.
+ * qu'une restriction coupe sont des échos, que nous calculons.
  *
  * Ce qui NE se recalcule pas : COMPONENTS/ARCHIPELS ci-dessus et le panneau ∑.
  * Ils décrivent le tableau ENTIER — une analyse de corpus ne suit pas ce que le
@@ -3565,7 +3565,18 @@ function pathBranchVisibility(ids) {
   return from + (to - from) * layoutVisualMorph.t;
 }
 
+// L'ONDULATION des échos : un déplacement perpendiculaire, en onde
+// qui court le long du fil (WAVE_TWOPI_N longueurs d'onde) et oscille dans le
+// temps (WAVE_SPEED). Ce mouvement propre les distingue au premier regard des
+// connecteurs tracés, qui restent immobiles. L'amplitude croît un peu avec la
+// longueur — les longs fils traversants ondulent assez pour se lire, les courts
+// restent discrets — bornée pour rester « légère ».
+const WAVE_TWOPI_N = Math.PI * 2 * 1.6;
+const WAVE_SPEED = 0.0022;            // rad/ms — une oscillation douce (~3 s)
+const WAVE_AMP_MIN = 1.2, WAVE_AMP_K = 0.01, WAVE_AMP_MAX = 3;
+
 function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint = null) {
+  const wave = edgeType === 'concept';   // seuls les échos ondulent
   // On retient l'ARÊTE, pas son routage : celui-ci change avec ce qu'on regarde
   // (cartographie routée au build, recentrage routé à la volée, Orbite 3D), et le figer ici
   // aurait laissé le recentrage dessiner le circuit de la cartographie.
@@ -3625,6 +3636,7 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
   const _px = new Float64Array(ROUTE_PTS), _py = new Float64Array(ROUTE_PTS), _pz = new Float64Array(ROUTE_PTS);
   const _pt = { x: 0, y: 0, z: 0 };
   function update() {
+    const now = performance.now();   // horloge de l'ondulation (échos)
     const pos = geo.attributes.position.array;
     const col = geo.attributes.color.array;
     const dd = dashed ? geo.attributes.lineDistance.array : null;
@@ -3665,9 +3677,24 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
         routePointAt(a.position, b.position, r, k, _pt);
         _px[k] = _pt.x; _py[k] = _pt.y; _pz[k] = _pt.z;
       }
+      // ── L'ondulation (échos seulement) : onde perpendiculaire
+      //    dans le plan, ancrée aux deux extrémités (enveloppe nulle aux bords),
+      //    déphasée par arête pour qu'elles ne battent pas ensemble.
+      if (wave && vis > 0.02) {
+        const dx = b.position.x - a.position.x, dy = b.position.y - a.position.y;
+        const L = Math.hypot(dx, dy) || 1;
+        const nx = -dy / L, ny = dx / L;   // perpendiculaire dans le plan XY
+        const amp = Math.min(WAVE_AMP_MAX, WAVE_AMP_MIN + L * WAVE_AMP_K);
+        const ph = i * 1.7;
+        for (let k = 1; k < ROUTE_PTS - 1; k++) {
+          const u = k / (ROUTE_PTS - 1);
+          const w = amp * Math.sin(Math.PI * u) * Math.sin(u * WAVE_TWOPI_N - now * WAVE_SPEED + ph);
+          _px[k] += nx * w; _py[k] += ny * w;
+        }
+      }
       // ── Les sommets deviennent des SEGMENTS : LineSegments consomme les
       //    sommets deux par deux, il faut donc doubler les points intérieurs.
-      // Une arête TEINTÉE (les fils « même texte ») ignore la couleur des nœuds :
+      // Une arête TEINTÉE (les échos) ignore la couleur des nœuds :
       // c'est un AUTRE langage de trait — l'écho d'un propos répété, pas un lien
       // tracé. Une teinte froide et uniforme le pose EN RETRAIT, derrière les
       // connecteurs colorés, au lieu de rivaliser avec eux. (Voir l'appel plus
@@ -3828,7 +3855,7 @@ function makeArrowRenderer(baseOpacity) {
 const connectorSolid = makeEdgeRenderer('connector', 0.30, true, false);
 const connectorDashed = makeEdgeRenderer('connector', 0.30, true, true);
 const arrowHeads = makeArrowRenderer(0.30);
-// Les fils « même texte » reprennent la COULEUR DES POST-ITS (comme la légende),
+// Les échos reprennent la COULEUR DES POST-ITS (comme la légende),
 // et NON une teinte à part : ce qui les démarque n'est pas leur couleur mais leur
 // FAIBLESSE — une nappe d'écho en retrait (opacité 0,14 contre 0,30 aux
 // connecteurs), doublée de leur routage direct. Le premier plan reste aux traits
@@ -5086,7 +5113,7 @@ detailFold.addEventListener('click', () => {
   setDetailPanelFolded(!panel.classList.contains('folded'));
 });
 
-const ETYPE_LABEL = { connector: 'connecteur', concept: 'même texte' };
+const ETYPE_LABEL = { connector: 'connecteur', concept: 'écho' };
 
 /**
  * La liste des connexions d'un post-it, dans sa fiche. Chaque voisin porte
@@ -5485,13 +5512,13 @@ document.getElementById('detail-close').addEventListener('click', closePanel);
  * = moins de SAUTS (pas moindre distance à l'écran) ; mais plusieurs chemins
  * peuvent avoir le même nombre de sauts. Le départage est ASSUMÉ : à sauts
  * égaux, on préfère celui qui emprunte le plus de CONNECTEURS tracés à la main
- * plutôt que de fils « même texte » (liens automatiques par répétition de
+ * plutôt que de échos (liens automatiques par répétition de
  * texte). Autrement dit un tri lexicographique (sauts, puis nombre de « même
  * texte »), résolu par un Dijkstra dont le poids d'une arête vaut BIG + 1 pour
- * un « même texte » et BIG pour un connecteur — BIG écrase toujours le second
+ * un écho et BIG pour un connecteur — BIG écrase toujours le second
  * critère, donc le nombre de sauts prime, et à égalité c'est le tracé le plus
  * « dessiné » qui gagne. Sur la ligne, le trait DIT lequel : plein pour un
- * connecteur, tirets pour un « même texte ».
+ * connecteur, tirets pour un écho.
  *
  * Le graphe reste NON orienté (la moitié des connecteurs n'ont aucune pointe,
  * census.dirs.none : un chemin peut donc remonter une flèche à contresens —
@@ -5505,7 +5532,7 @@ document.getElementById('detail-close').addEventListener('click', closePanel);
  * tracé lisent alors le MÊME résultat, sans le recalculer.
  */
 const _spTreeCache = new Map(); // originId → { prev, hops, preds }
-// Poids d'une arête pour le tri lexicographique (sauts, puis « même texte ») :
+// Poids d'une arête pour le tri lexicographique (sauts, puis échos) :
 // BIG écrase toujours la pénalité, donc le nombre de sauts prime.
 const SP_BIG = NODES.length + 1;
 function edgeWeight(u, v) {
@@ -6031,8 +6058,8 @@ function renderPathPanel() {
   if (has) {
     const lg = document.createElement('div'); lg.className = 'pp-legend';
     lg.innerHTML = '<span class="pp-lg-solid"></span>lien tracé'
-      + '<span class="pp-lg-dash"></span>« même texte »';
-    lg.title = 'Sur la carte : trait plein = connecteur tracé à la main · tirets = fil « même texte » (deux post-its au texte identique). À sauts égaux, un chemin préfère les connecteurs.';
+      + '<span class="pp-lg-dash"></span>écho';
+    lg.title = 'Sur la carte : trait plein = connecteur tracé à la main · tirets = écho (deux post-its au texte identique). À sauts égaux, un chemin préfère les connecteurs.';
     ppList.appendChild(lg);
   }
   reflow();
@@ -6274,7 +6301,7 @@ const _branchCol = new THREE.Color();
  * puisqu'un routage s'écrit de `source` vers `target`.
  *
  * ⚠ Deux nœuds peuvent être reliés DEUX fois : un trait tracé à la main et un
- * fil « même texte ». On retient le CONNECTEUR — c'est celui que l'œil voit, et
+ * écho. On retient le CONNECTEUR — c'est celui que l'œil voit, et
  * celui dont le chemin épouse le trajet.
  */
 const edgePairIndex = (() => {
@@ -6302,7 +6329,7 @@ function depthDim(id) {
   return (d === undefined || d <= state.egoDepth) ? 1 : PATH_BEYOND_DEPTH;
 }
 // Le tracé d'UNE polyligne d'ids (chemin posé OU prévisualisation) dans un
-// « puits » : segments PLEINS (connecteur) et TIRETÉS (« même texte ») séparés,
+// « puits » : segments PLEINS (connecteur) et TIRETÉS (écho) séparés,
 // plus la distance-le-long-du-trait des tirets. On suit le TRAJET des arêtes
 // (coudes du routage compris), pas la corde. La couleur (identité de branche)
 // est modulée par sommet selon la profondeur du recentrage. Partagé pour que la
@@ -6317,7 +6344,7 @@ function pushRoutedSegments(ids, cr, cg, cb, sink) {
     // lien ne passe pas — il montrerait autre chose que ce qu'il surligne.
     const ed = edgeBetween(ids[k], ids[k + 1]);
     const r = ed ? routeOf(ed.e) : null;
-    // Trait plein pour un connecteur dessiné, tirets pour un fil « même texte »
+    // Trait plein pour un connecteur dessiné, tirets pour un écho
     // (sans arête retrouvée — cas théorique —, on garde le trait plein).
     const concept = !!ed && ed.e.type !== 'connector';
     const pts = concept ? sink.dPts : sink.sPts;
@@ -6348,7 +6375,7 @@ function pushRoutedSegments(ids, cr, cg, cb, sink) {
       if (dist) {
         // Distance PARCOURUE depuis le début de CETTE arête (coudes compris) : le
         // motif ne se brise pas aux angles, et repart à zéro à chaque arête
-        // « même texte » — chaque saut est son propre pointillé.
+        // écho — chaque saut est son propre pointillé.
         dist.push(run);
         run += Math.hypot(x1 - x0, y1 - y0, z1 - z0);
         dist.push(run);
@@ -8102,7 +8129,7 @@ function buildMethodFiche() {
   const figs = [
     [nfr(LEAVES.length), 'nœuds sur la carte'],
     [nfr(conn), 'traits tracés à la main'],
-    [nfr(conc), 'fils « même texte »'],
+    [nfr(conc), 'échos'],
     [nfr(SECTIONS.length), 'sections (les blocs du tableau)'],
     [`${nfr(REGARDS.length)} · ${nfr(SOUSTHEMES.length)}`, 'regards · sections du tronc'],
     [nfr(PERIODES.length), 'temps de travail'],
@@ -8224,8 +8251,8 @@ function buildMethodFiche() {
     fillFig('md-arbre-tronc', `${nfr(A.troncNodes)} post‑its`);
     fillFig('md-arbre-branches', nfr(A.brancheNodes));
     const espece = A.crossConnector === 0
-      ? 'sont <b>tous</b> des fils « même texte » — c’est-à-dire calculés par nous.'
-      : `comptent ${nfr(A.crossConnector)} trait(s) tracé(s) à la main et ${nfr(A.crossConcept)} fils « même texte ».`;
+      ? 'sont <b>tous</b> des échos — c’est-à-dire calculés par nous.'
+      : `comptent ${nfr(A.crossConnector)} trait(s) tracé(s) à la main et ${nfr(A.crossConcept)} échos.`;
     document.getElementById('md-arbre-sep').innerHTML =
       `sur les ${nfr(A.troncLinks + A.brancheLinks + A.crossLinks)} liens, ${nfr(A.troncLinks)} sont internes au tronc, `
       + `${nfr(A.brancheLinks)} internes aux branches, et les ${nfr(A.crossLinks)} qui traversent la frontière ${espece}`;
@@ -8300,7 +8327,7 @@ function buildMethodFiche() {
   document.getElementById('md-sim').innerHTML = [
     ['Répulsion · toutes paires, en 1/d²', `intensité ${dec(P.repulse)} · plancher ${dec(P.minSep)} · portée ${dec(P.cutoff)}`],
     ['Ressort · connecteur tracé', `longueur ${dec(P.springConnector.rest)} · raideur ${dec(P.springConnector.k)}`],
-    ['Ressort · fil « même texte »', `longueur ${dec(P.springConcept.rest)} · raideur ${dec(P.springConcept.k)}`],
+    ['Ressort · écho', `longueur ${dec(P.springConcept.rest)} · raideur ${dec(P.springConcept.k)}`],
     ['Gravité · vers l\'ancre de section', `longueur ${dec(P.gravRest)} · raideur ${dec(P.gravK)}`],
     ['Sphère des sections', `rayon ${dec(P.constRxz)} · demi-hauteur ${dec(P.constRy)}`],
     ['Tours de relaxation', nfr(P.iters)],
@@ -8654,7 +8681,7 @@ function buildStats() {
     const host = fold('Corpus en chiffres', { open: true });
     sub(`Statistiques calculées sur les ${CORPUS.length} post-its de contenu — les ${PARATEXT_COUNT} nœuds d'appareil (titres de blocs, questions de recherche, présentations) restent sur la carte mais ne pèsent pas ici.`, host);
     const grid = document.createElement('div'); grid.className = 'st-grid';
-    [[CORPUS.length, 'post-its de contenu'], [nConn, 'connecteurs tracés'], [nConc, 'fils « même texte »'],
+    [[CORPUS.length, 'post-its de contenu'], [nConn, 'connecteurs tracés'], [nConc, 'échos'],
      [nIso, 'isolés (degré 0)'],
      [`${nNoRegard} · ${Math.round(100 * nNoRegard / HC.length)} %`, 'sans regard (hors du tronc)'],
      [`${median(CORPUS.map(n => (n.fullText || n.label || '').length))} car.`, 'texte médian']]
@@ -8816,7 +8843,7 @@ function buildStats() {
   //    une fois, selon ses DEUX réponses.
   //  • un axe FACE À LUI-MÊME → dialogue : on ne compte plus des post-its mais
   //    les CONNECTEURS tracés à la main dont les deux bouts tombent dans deux
-  //    catégories de l'axe (fils « même texte » exclus). Matrice symétrique —
+  //    catégories de l'axe (échos exclus). Matrice symétrique —
   //    un seul triangle, diagonale = dialogue d'une catégorie avec elle-même.
   {
     const host = fold('Croisement', { sub: 'un axe × un autre, ou lui-même' });
@@ -8923,7 +8950,7 @@ function buildStats() {
 
     // DIALOGUE — un axe face à lui-même : on compte les CONNECTEURS tracés à la
     // main dont les deux bouts portent une réponse CONNUE (non classé exclu),
-    // fils « même texte » exclus. Matrice symétrique : triangle haut seul.
+    // échos exclus. Matrice symétrique : triangle haut seul.
     function renderLinkCross(aKey, A) {
       // « Non classé » n'est pas un interlocuteur : on l'ôte de la matrice du
       // dialogue (le filtre au clic, lui, part de A.items complet pour bien
@@ -8937,7 +8964,7 @@ function buildStats() {
         const ka = A.keyOf(a), kb = A.keyOf(b);
         return ka !== NONE_KEY && kb !== NONE_KEY && idx.has(ka) && idx.has(kb);
       });
-      note.textContent = `Compte les connecteurs tracés à la main dont les deux extrémités portent une réponse connue à « ${A.label} » — ${conns.length} sur ${nConn} au total (le reste implique un post-it non classé ; fils « même texte » exclus). La diagonale dit le dialogue d'une catégorie avec elle-même. Cliquer une cellule isole le couple.`;
+      note.textContent = `Compte les connecteurs tracés à la main dont les deux extrémités portent une réponse connue à « ${A.label} » — ${conns.length} sur ${nConn} au total (le reste implique un post-it non classé ; échos exclus). La diagonale dit le dialogue d'une catégorie avec elle-même. Cliquer une cellule isole le couple.`;
       const cnt = new Map();
       conns.forEach(e => {
         const ka = A.keyOf(nodeById.get(e.source)), kb = A.keyOf(nodeById.get(e.target));
@@ -9792,7 +9819,13 @@ function animate() {
     // lancer sa première transformation. Sans ce petit palier, l'URL vers une
     // constellation reprenait le vol d'ouverture juste avant l'atterrissage.
     if (performance.now() - intro.t0 >= introTotal() + (urlState ? 420 : 0)) endIntro();
-  } else if (frameCount % 6 === 0) updateLabels();
+  } else {
+    if (frameCount % 6 === 0) updateLabels();
+    // Les échos ONDULENT en continu : leur géométrie se réécrit à
+    // chaque image (les connecteurs, eux, restent figés hors transition). Coût
+    // borné — ~140 fils, le même travail que fait déjà une transition.
+    conceptEdges.update();
+  }
   updatePathLine();
   updatePreviewLine(); // la prévisualisation du tracé suit les mêmes positions vivantes
   // Les repères suivent leur nœud (métamorphose de disposition) et la caméra
