@@ -8683,16 +8683,19 @@ function buildStats() {
   // réel du tableau (« Qui ? » et non « regard », etc.).
   {
     const rep = fold('Répartitions', { sub: 'chaque question, séparément' });
-    const one = (title, subt, note, items, total) => {
-      const host = fold(title, { sub: subt, parent: rep, cls: 'st-sub-fold' });
+    const one = (title, subt, note, items, total, parent = rep) => {
+      const host = fold(title, { sub: subt, parent, cls: 'st-sub-fold' });
       sub(note, host);
       distList(items, total, host);
     };
 
-    // Les DEUX parties de « Quoi ? », comme dans la légende : sections des
-    // branches et sections du tronc — pas d'agrégat « Tronc » (le tronc se lit
-    // par ses sections, jamais comme un bloc unique).
-    one('Sections des branches', 'Quoi ? · les treize blocs titrés',
+    // « Quoi ? » CONTIENT ses deux échelles — pas deux entrées à plat au même
+    // niveau que Qui ?/Quand ?/… : c'est une seule question, comme dans la
+    // légende, où les sections des branches et les sections du tronc sont deux
+    // groupes d'UN axe. Pas d'agrégat « Tronc » : le tronc se lit par ses
+    // sections, jamais comme un bloc unique.
+    const quoiFold = fold('Quoi ?', { sub: 'par section, aux deux échelles', parent: rep, cls: 'st-sub-fold' });
+    one('Sections des branches', 'les treize blocs titrés',
       'Cliquer met la section en lumière sur la carte.',
       SECTIONS.filter(s => s.id !== 's_frame').map(s => ({
         name: s.name, color: s.color, count: HC.filter(n => n.section === s.id).length,
@@ -8700,9 +8703,9 @@ function buildStats() {
           closeStats(); setTab('section'); setFocus('section', s.id);
           flyToGroup(HC.filter(n => n.section === s.id));
         },
-      })), HC.length);
+      })), HC.length, quoiFold);
 
-    one('Sections du tronc', 'Quoi ? · les onze grappes de couleur',
+    one('Sections du tronc', 'les onze grappes de couleur',
       `Les ${FR.length} post-its du tronc, classés par la couleur de leur grappe — c'est ce que « Quoi ? » affiche quand on regarde le tronc. Cliquer y conduit et met la section en lumière.`,
       SOUSTHEMES.map(t => ({ key: t.key, name: t.name, color: t.color }))
         .concat([{ key: NONE_KEY, name: 'Sans section', color: NEUTRAL_REGARD }])
@@ -8714,7 +8717,7 @@ function buildStats() {
             const cat = FR.filter(n => (n.sousTheme || NONE_KEY) === t.key);
             if (cat.length) flyToGroup(cat);
           },
-        })), FR.length);
+        })), FR.length, quoiFold);
 
     one('Qui ?', 'les regards',
       `Hors du tronc (${HC.length} post-its) : dans le tronc, la couleur désigne une section, pas un regard. Cliquer met le regard en lumière sur la carte.`,
