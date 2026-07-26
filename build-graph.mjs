@@ -9,15 +9,15 @@
  * : une donnée qui n'agit pas n'a rien à faire dans le fichier ; une règle qui
  * jette doit s'annoncer, pas faire semblant).
  *
- * Les tables ci-dessous (sections, regards, sous-thèmes) sont ÉDITORIALES :
+ * Les tables ci-dessous (sections, regards, sections du tronc) sont ÉDITORIALES :
  * elles portent des noms et des couleurs qu'aucun algorithme ne peut deviner.
  * Le reste est dérivé.
  *
  * ⚠ LA COULEUR NE DIT PAS LA MÊME CHOSE PARTOUT (audit de juillet 2026) :
- * HORS du cadre Miro, la couleur de remplissage désigne un REGARD (la légende
- * du tableau) ; DANS le cadre « Vue d'ensemble », elle désigne un SOUS-THÈME
+ * HORS du tronc, la couleur de remplissage désigne un REGARD (la légende
+ * du tableau) ; DANS le tronc, elle désigne une SECTION
  * (onze grappes, chacune titrée par un post-it « x … » de la même couleur).
- * L'ancien build lisait « regard » partout : ~105 attributions du cadre
+ * L'ancien build lisait « regard » partout : ~105 attributions du tronc
  * étaient des contresens (le bleu ciel y est « Inhumation symbolique », pas
  * « Musée du Quai Branly »). Ne pas ré-unifier ces deux lectures.
  */
@@ -70,7 +70,7 @@ const OFF_BOARD_DIST = 3000;
 
 /**
  * Les 11 regards, et la couleur de remplissage Miro qui les désigne — HORS DU
- * CADRE UNIQUEMENT (dans le cadre, la couleur dit le sous-thème, voir
+ * TRONC UNIQUEMENT (dans le tronc, la couleur dit la section, voir
  * SOUS_THEMES). `aliases` : les couleurs que les auteur·rices ont employées
  * pour le MÊME regard sans tomber pile sur la couleur de la légende. Ce n'est
  * pas un calcul de proximité — c'est cette liste-ci, et rien d'autre. Une
@@ -80,7 +80,7 @@ const OFF_BOARD_DIST = 3000;
  * ⚠ DEUX jaunes proches, à ne pas confondre. (1) `#fff6b6` est un hex CHOISI,
  * et c'est EXACTEMENT la couleur que la légende du tableau donne à « Média »
  * (le sticky « Média » de la légende est #fff6b6) : les douze post-its
- * hors-cadre qui la portent sont donc classés « Média », fidèlement à la
+ * hors du tronc qui la portent sont donc classés « Média », fidèlement à la
  * légende. (2) `light_yellow` est le NOM de la couleur PAR DÉFAUT d'un sticky
  * Miro (jamais recoloré), stocké littéralement « light_yellow » : il n'entre
  * PAS dans regardByColor (qui n'a que des hex), reste « non classé », et ses
@@ -106,15 +106,15 @@ const REGARDS = [
 const NEUTRAL_REGARD_COLOR = '#6d6656';
 
 /**
- * Les 11 sous-thèmes du cadre « Vue d'ensemble » : les grappes de couleur de
- * le canevas de départ, chacune titrée sur le tableau par un post-it « x … » de la même
+ * Les 11 sections du tronc : les grappes de couleur du
+ * tronc de départ, chacune titrée sur le tableau par un post-it « x … » de la même
  * couleur. `colors` est la table de correspondance (remplissage Miro) ;
  * `color` la teinte d'affichage. Le jaune #ffdc4a sert DEUX grappes : on
- * départage par l'ancre du titre (coordonnées RELATIVES au cadre, comme les
+ * départage par l'ancre du titre (coordonnées RELATIVES au tronc, comme les
  * positions de ses enfants) — et l'affichage de « Restitution du squelette »
  * prend un jaune assombri, sinon les deux se confondraient à l'écran.
- * Le rouge #bd0a0a du cadre n'a AUCUN titre « x … » : il reste « sans
- * sous-thème », et le build l'annonce.
+ * Le rouge #bd0a0a du tronc n'a AUCUN titre « x … » : il reste « sans
+ * section », et le build l'annonce.
  */
 const SOUS_THEMES = [
   { key: 'st_inhum',    name: 'Inhumation symbolique',              color: '#c6dcff', colors: ['#c6dcff'] },
@@ -186,7 +186,7 @@ const QUOTED_SPAN = /[«“"]\s*([^«»“”"]{3,})\s*[»”"]/g;
  * nature, dite comme telle dans la légende du site.
  *
  * Les bornes ne sont pas régulières : elles suivent les PHASES DE TRAVAIL du
- * tableau — le canevas, l'atelier, les reprises, l'enquête (voir `hint`) —, et
+ * tableau — le tronc, l'atelier, les reprises, l'enquête (voir `hint`) —, et
  * non un calendrier régulier. À ne pas confondre avec les grands SILENCES de
  * l'archive (census.silencesHours) : ceux-là montrent que le temps n'est pas un
  * continuum, mais ils NE définissent PAS les bornes — les plus longs tombent au
@@ -228,11 +228,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * La LÉGENDE du tableau (les 11 pastilles de regards, « Identification des
- * différents regards », « Légende ») vit dans le cadre, dans ce rectangle en
+ * différents regards », « Légende ») vit dans le tronc, dans ce rectangle en
  * coordonnées relatives. Ce sont 13 items d'appareil, pas du corpus : comptés
  * comme des post-its, ils gonflaient chaque regard d'exactement 1 (fatal aux
  * petits — « Philosophe » affichait 3 dont sa propre pastille) et tissaient
- * des fils « même texte » entre la légende et le contenu. Écartés, et dits.
+ * des échos entre la légende et le contenu. Écartés, et dits.
  */
 const LEGEND_BOX = { x0: 5400, x1: 5700, y0: 600, y1: 2500 };
 
@@ -264,7 +264,7 @@ const CONST_R_Y = 32.2;        //                       demi-hauteur
 const SEED = 42;               // l'aléatoire est à graine fixe : deux exécutions
                                // donnent le même fichier, au bit près
 
-// Seuil typographique du paratexte : hors du cadre, un item composé en corps
+// Seuil typographique du paratexte : hors du tronc, un item composé en corps
 // 30 ou plus n'est pas un post-it — c'est un titre de bloc, une question de
 // recherche ou une présentation (« Cette carte mentale… »). Vérifié item par
 // item sur l'export : au-dessus de ce corps, AUCUN contenu ; en dessous, aucun
@@ -350,7 +350,7 @@ function labelOf(text) {
 }
 
 /** Clé de rapprochement des textes répétés : casse, accents d'espaces et
- *  retours à la ligne écrasés. C'est elle qui fabrique les fils « même texte ». */
+ *  retours à la ligne écrasés. C'est elle qui fabrique les échos. */
 const conceptKey = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 const dist2 = (ax, ay, bx, by) => (ax - bx) ** 2 + (ay - by) ** 2;
@@ -366,17 +366,17 @@ const warn = msg => report.warnings.push(msg);
 // L'export Miro arrive avec une marque d'ordre des octets : JSON.parse la refuse.
 const raw = JSON.parse(readFileSync(SRC, 'utf8').replace(/^﻿/, ''));
 const frame = raw.items.find(i => i.type === 'frame');
-if (!frame) throw new Error('Aucun cadre dans export_miro.json : la section « Vue d\'ensemble » est définie par lui.');
+if (!frame) throw new Error('Aucun cadre Miro dans export_miro.json : la section « Tronc » est définie par lui.');
 
-// ══════════════════════════════════════════════════════ 2. Couleurs -> regards / sous-thèmes
+// ══════════════════════════════════════════════════════ 2. Couleurs -> regards / sections du tronc
 
 const regardByColor = new Map();
 for (const r of REGARDS) {
   regardByColor.set(r.color.toLowerCase(), r);
   for (const a of r.aliases) regardByColor.set(a.toLowerCase(), r);
 }
-const unknownFills = new Map();        // hors cadre : couleur sans regard
-const unknownFrameFills = new Map();   // dans le cadre : couleur sans sous-thème
+const unknownFills = new Map();        // hors du tronc : couleur sans regard
+const unknownFrameFills = new Map();   // dans le tronc : couleur sans section
 
 const themesByColor = new Map();
 for (const t of SOUS_THEMES) {
@@ -396,7 +396,7 @@ function periodeOf(createdAt) {
   return null;
 }
 
-/** Sous-thème d'un enfant du cadre : sa couleur, départagée par l'ancre du
+/** Section du tronc d'un enfant du cadre Miro : sa couleur, départagée par l'ancre du
  *  titre quand une couleur sert deux grappes (le jaune). p est RELATIF. */
 function sousThemeOf(fill, p) {
   const cands = themesByColor.get(fill) || [];
@@ -453,7 +453,7 @@ function natureOf(item, text, inFrame) {
   if (item.type === 'embed') return 'reference';
   if (item.type === 'card') return 'meta';         // la carte décrit le projet
   if (/cette carte mentale/i.test(text)) return 'meta';
-  if (inFrame && /^x\s/i.test(text)) return 'titre';  // les onze « x … » du cadre
+  if (inFrame && /^x\s/i.test(text)) return 'titre';  // les onze « x … » du tronc
   const fs = Number(item.style?.fontSize) || 0;
   if (!inFrame && fs >= PARATEXT_FONT_MIN) return /\?/.test(text) ? 'question' : 'titre';
   return 'contenu';
@@ -488,7 +488,7 @@ const anchored = SECTIONS.filter(s => s.anchors);
 const kept = [];
 let legendDropped = 0;
 for (const item of raw.items) {
-  if (item.type === 'frame') { drop(item, 'cadre (devient la section « Vue d\'ensemble »)'); continue; }
+  if (item.type === 'frame') { drop(item, 'cadre Miro (devient la section « Tronc »)'); continue; }
 
   const text = textOf(item);
   if (!text && item.type !== 'image') { drop(item, 'aucun texte'); continue; }
@@ -503,7 +503,7 @@ for (const item of raw.items) {
     continue;
   }
 
-  // Position absolue : les enfants du cadre sont exprimés depuis son coin haut-gauche.
+  // Position absolue : les enfants du cadre Miro sont exprimés depuis son coin haut-gauche.
   const x = inFrame ? frame.position.x - frame.geometry.width / 2 + p.x : p.x;
   const y = inFrame ? frame.position.y - frame.geometry.height / 2 + p.y : p.y;
 
@@ -551,8 +551,8 @@ if (legendDropped !== 13) warn(`légende du tableau : ${legendDropped} items éc
 // parfois une carte de présentation composée à la main. On les SORT de la carte
 // et on les remonte en en-tête du panneau de zone (voir renderGroupPanel). La
 // question de recherche, elle, RESTE un nœud interrogeable : on n'en garde
-// qu'une COPIE pour l'en-tête. Le tronc (« Vue d'ensemble ») garde ses titres de
-// sous-thèmes — ce sont les étiquettes de ses grappes, pas des présentations.
+// qu'une COPIE pour l'en-tête. Le tronc garde ses titres de
+// section — ce sont les étiquettes de ses grappes, pas des présentations.
 const presentations = {};
 const presFor = id => presentations[id] || (presentations[id] = { category: sectionById.get(id)?.name || '' });
 // Cartes de présentation composées à la main, donc classées « contenu » : la
@@ -629,7 +629,7 @@ const nodes = SECTIONS.map(s => ({
 
 for (const k of kept) {
   const isImage = k.item.type === 'image';
-  // Les titres « x … » du cadre perdent leur marqueur dans l'ÉTIQUETTE — le
+  // Les titres « x … » du tronc perdent leur marqueur dans l'ÉTIQUETTE — le
   // texte intégral, lui, reste celui du tableau, marqueur compris.
   const labelText = k.nature === 'titre' ? k.text.replace(/^x\s+/i, '') : k.text;
   const label = isImage && !k.text ? 'Image' : labelOf(labelText || 'Image');
@@ -723,7 +723,7 @@ for (const c of raw.connectors) {
   addEdge(a, b, 'connector', dirOf(c.style), (c.style || {}).strokeStyle === 'dotted', c.createdAt);
 }
 
-// 6b. Les fils « même texte » : un post-it répété ailleurs sur le tableau est le
+// 6b. Les échos : un post-it répété ailleurs sur le tableau est le
 //     même propos tenu deux fois. On enfile chaque groupe (chaîne, pas clique) :
 //     la clique dirait la même chose en O(n²) traits.
 const byConcept = new Map();
@@ -780,7 +780,7 @@ if (introEvents.length) {
 //     `n.section`, donc elle n'est PAS expédiée au navigateur.
 const gravity = kept.map(k => ({ source: k.sectionId, target: k.item.id }));
 
-// 6e. Degré = ce qui se voit (connecteurs + même texte). La gravité ne compte
+// 6e. Degré = ce qui se voit (connecteurs + échos). La gravité ne compte
 //     pas : elle n'est pas un lien du tableau, c'est un artifice de mise en page.
 const degree = new Map(nodes.map(n => [n.id, 0]));
 for (const e of edges) {
@@ -1225,7 +1225,7 @@ console.log(`\n  graph.json — ${nodes.length} nœuds, ${edges.length} arêtes,
 console.log(`  ${report.kept} items retenus sur ${raw.items.length}. Jetés :`);
 for (const { why, n } of dropCensus) console.log(`    ${String(n).padStart(3)}  ${why}`);
 
-console.log(`\n  Arêtes : ${edgeCounts.connector} connecteurs · ${edgeCounts.concept} « même texte »`);
+console.log(`\n  Arêtes : ${edgeCounts.connector} connecteurs · ${edgeCounts.concept} échos`);
 if (danglingConnectors) console.log(`    ${danglingConnectors} connecteurs ignorés (une extrémité jetée)`);
 console.log(`    orientation conservée : ${dirCensus.forward} vers l'avant · ${dirCensus.backward} vers l'arrière · ${dirCensus.both} réciproques · ${dirCensus.none} SANS pointe`);
 console.log(`    ${dottedConnectors} pointillés conservés — le geste est restitué, son sens reste inconnu`);
@@ -1270,24 +1270,24 @@ for (const p of PERIODES) {
 
 const themed = nodes.filter(n => n.kind !== 'section' && n.sousTheme).length;
 const frameCount = nodes.filter(n => n.kind !== 'section' && n.section === 's_frame').length;
-console.log(`  Sous-thèmes du cadre : ${themed}/${frameCount} classés`);
+console.log(`  Sections du tronc : ${themed}/${frameCount} classées`);
 if (unknownFrameFills.size) {
   const total = [...unknownFrameFills.values()].reduce((a, b) => a + b, 0);
-  console.warn(`  ⚠ ${total} items du cadre portent une couleur sans sous-thème (aucun titre « x … » ne la revendique) :`);
+  console.warn(`  ⚠ ${total} items du tronc portent une couleur sans section (aucun titre « x … » ne la revendique) :`);
   for (const [c, n] of [...unknownFrameFills].sort((a, b) => b[1] - a[1])) console.warn(`    ${String(n).padStart(3)}  ${c}`);
 }
 
 if (unknownFills.size) {
   const total = [...unknownFills.values()].reduce((a, b) => a + b, 0);
-  console.warn(`\n  ⚠ ${total} post-its hors cadre portent une couleur absente de la table des regards — « non classés » :`);
+  console.warn(`\n  ⚠ ${total} post-its hors du tronc portent une couleur absente de la table des regards — « non classés » :`);
   for (const [c, n] of [...unknownFills].sort((a, b) => b[1] - a[1])) console.warn(`    ${String(n).padStart(3)}  ${c}`);
   console.warn('    (Ajouter la couleur en alias d\'un regard ci-dessus si elle en désigne un.)');
 }
 
-console.log(`\n  L'arbre (tronc = le cadre, branches = les 13 blocs) :`);
+console.log(`\n  L'arbre (tronc, branches) :`);
 console.log(`    ${arbre.troncNodes} post-its au tronc · ${arbre.brancheNodes} aux branches`);
 console.log(`    liens : ${arbre.troncLinks} internes au tronc · ${arbre.brancheLinks} internes aux branches · ${arbre.crossLinks} traversants`);
-console.log(`    dont traversants : ${arbre.crossConnector} connecteur(s) tracé(s) à la main · ${arbre.crossConcept} fils « même texte »`);
+console.log(`    dont traversants : ${arbre.crossConnector} connecteur(s) tracé(s) à la main · ${arbre.crossConcept} échos`);
 if (arbre.crossConnector > 0) {
   console.warn(`    ⚠ ${arbre.crossConnector} trait tracé à la main franchit la frontière tronc/branches.`);
   console.warn(`      La fiche (§ 10) affirme qu'AUCUN ne le fait : c'est la thèse qu'il faut revoir, pas ce compte.`);
@@ -1305,7 +1305,7 @@ const isolated = nodes.filter(n => n.kind !== 'section' && n.degree === 0).lengt
 const withLinks = nodes.filter(n => n.links.length).length;
 const links = nodes.reduce((a, n) => a + n.links.length, 0);
 console.log(`\n  État du corpus :`);
-console.log(`    ${noRegard} nœuds hors cadre sans regard (${(100 * noRegard / horsCadre).toFixed(0)} % du hors-cadre ; le cadre n'a pas de regards, il a des sous-thèmes)`);
+console.log(`    ${noRegard} nœuds hors du tronc sans regard (${(100 * noRegard / horsCadre).toFixed(0)} % hors du tronc ; le tronc n'a pas de regards, il a des sections)`);
 console.log(`    ${isolated} nœuds isolés (degré 0)`);
 console.log(`    ${links} références sur ${withLinks} nœuds`);
 for (const w of report.warnings) console.warn(`  ⚠ ${w}`);

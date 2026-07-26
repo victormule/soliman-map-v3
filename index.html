@@ -3565,15 +3565,24 @@ function pathBranchVisibility(ids) {
   return from + (to - from) * layoutVisualMorph.t;
 }
 
-// L'ONDULATION des échos : un déplacement perpendiculaire, en onde
-// qui court le long du fil (WAVE_TWOPI_N longueurs d'onde) et oscille dans le
-// temps (WAVE_SPEED). Ce mouvement propre les distingue au premier regard des
-// connecteurs tracés, qui restent immobiles. L'amplitude croît un peu avec la
-// longueur — les longs fils traversants ondulent assez pour se lire, les courts
-// restent discrets — bornée pour rester « légère ».
+// L'ONDULATION des échos : un déplacement perpendiculaire, en onde qui court le
+// long du fil (WAVE_TWOPI_N longueurs d'onde) et oscille dans le temps
+// (WAVE_SPEED). Ce mouvement propre les distingue des connecteurs tracés,
+// immobiles. L'amplitude croît un peu avec la longueur, bornée.
 const WAVE_TWOPI_N = Math.PI * 2 * 1.6;
 const WAVE_SPEED = 0.0022;            // rad/ms — une oscillation douce (~3 s)
-const WAVE_AMP_MIN = 1.2, WAVE_AMP_K = 0.01, WAVE_AMP_MAX = 3;
+const WAVE_AMP_MIN = 0.8, WAVE_AMP_K = 0.007, WAVE_AMP_MAX = 2.0;
+// Discrétion + économie : l'ondulation est PILOTÉE PAR LE ZOOM. On mesure les
+// pixels par unité-monde (viewport / hauteur-monde vue) ; en-dessous de FAR on
+// n'ondule pas du tout (de loin les fils se suivent, droits), au-dessus de NEAR
+// l'ondulation est pleine, avec un fondu entre les deux. `edgeWaveGate` (0..1)
+// est posé chaque image par la boucle et lu dans update() ; à 0, on cesse même
+// de réécrire la géométrie des échos — aucun coût au repos (le cas le plus
+// fréquent, en vue d'ensemble). Coupée aussi en « mouvement réduit ».
+const WAVE_FAR_PXU = 9, WAVE_NEAR_PXU = 24;
+const WAVE_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let edgeWaveGate = 0;        // 0 = pas d'ondulation ; 1 = pleine
+let edgeWaveWasPlaying = false;
 
 function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint = null) {
   const wave = edgeType === 'concept';   // seuls les échos ondulent
@@ -3680,11 +3689,11 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
       // ── L'ondulation (échos seulement) : onde perpendiculaire
       //    dans le plan, ancrée aux deux extrémités (enveloppe nulle aux bords),
       //    déphasée par arête pour qu'elles ne battent pas ensemble.
-      if (wave && vis > 0.02) {
+      if (wave && vis > 0.02 && edgeWaveGate > 0.001) {
         const dx = b.position.x - a.position.x, dy = b.position.y - a.position.y;
         const L = Math.hypot(dx, dy) || 1;
         const nx = -dy / L, ny = dx / L;   // perpendiculaire dans le plan XY
-        const amp = Math.min(WAVE_AMP_MAX, WAVE_AMP_MIN + L * WAVE_AMP_K);
+        const amp = Math.min(WAVE_AMP_MAX, WAVE_AMP_MIN + L * WAVE_AMP_K) * edgeWaveGate;
         const ph = i * 1.7;
         for (let k = 1; k < ROUTE_PTS - 1; k++) {
           const u = k / (ROUTE_PTS - 1);
@@ -9821,10 +9830,16 @@ function animate() {
     if (performance.now() - intro.t0 >= introTotal() + (urlState ? 420 : 0)) endIntro();
   } else {
     if (frameCount % 6 === 0) updateLabels();
-    // Les échos ONDULENT en continu : leur géométrie se réécrit à
-    // chaque image (les connecteurs, eux, restent figés hors transition). Coût
-    // borné — ~140 fils, le même travail que fait déjà une transition.
-    conceptEdges.update();
+    // Ondulation des échos, pilotée par le ZOOM (voir WAVE_FAR/NEAR_PXU) :
+    // pixels par unité-monde à la profondeur regardée. De loin (peu de pixels
+    // par unité), porte à 0 → les fils sont droits et on cesse de réécrire leur
+    // géométrie : AUCUN coût au repos. De près, porte à 1 → ondulation pleine.
+    const pxu = window.innerHeight
+      / (2 * camera.position.distanceTo(controls.target) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+    edgeWaveGate = WAVE_REDUCED_MOTION ? 0
+      : Math.min(1, Math.max(0, (pxu - WAVE_FAR_PXU) / (WAVE_NEAR_PXU - WAVE_FAR_PXU)));
+    if (edgeWaveGate > 0.001) { conceptEdges.update(); edgeWaveWasPlaying = true; }
+    else if (edgeWaveWasPlaying) { conceptEdges.update(); edgeWaveWasPlaying = false; } // une dernière passe : fils remis droits
   }
   updatePathLine();
   updatePreviewLine(); // la prévisualisation du tracé suit les mêmes positions vivantes
