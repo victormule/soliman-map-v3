@@ -3660,12 +3660,10 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
   const _bx = wave ? new Float64Array(ROUTE_PTS) : null;
   const _by = wave ? new Float64Array(ROUTE_PTS) : null;
   const _bz = wave ? new Float64Array(ROUTE_PTS) : null;
-  // Pour l'onde : longueur cumulée le long du tracé (_arc) et décalage à ajouter
-  // (_ox/_oy), calculé à part pour que la tangente locale se lise sur le tracé
-  // NON déformé avant d'y poser l'onde.
-  const _arc = wave ? new Float64Array(RP) : null;
-  const _ox = wave ? new Float64Array(RP) : null;
-  const _oy = wave ? new Float64Array(RP) : null;
+  // Longueur cumulée le long du trajet de BASE (ROUTE_PTS points) : sert à poser
+  // les dents à des positions d'ARC exactes (tous les λ/2), donc identiques sur
+  // tous les échos.
+  const _barc = wave ? new Float64Array(ROUTE_PTS) : null;
   const _pt = { x: 0, y: 0, z: 0 };
   function update() {
     const now = performance.now();   // horloge de l'ondulation (échos)
@@ -3712,40 +3710,54 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
           _px[k] = _pt.x; _py[k] = _pt.y; _pz[k] = _pt.z;
         }
       } else {
+        // Base : le vrai trajet (corde en Direct, coudes en Circuit) + longueur cumulée.
         for (let k = 0; k < ROUTE_PTS; k++) {
           routePointAt(a.position, b.position, r, k, _pt);
           _bx[k] = _pt.x; _by[k] = _pt.y; _bz[k] = _pt.z;
         }
-        for (let j = 0; j < RP; j++) {   // paramètre uniforme le long de la ligne brisée de base
-          const s = j / (RP - 1) * (ROUTE_PTS - 1);
-          const kk = Math.min(ROUTE_PTS - 2, Math.floor(s)), f = s - kk;
-          _px[j] = _bx[kk] + (_bx[kk + 1] - _bx[kk]) * f;
-          _py[j] = _by[kk] + (_by[kk + 1] - _by[kk]) * f;
-          _pz[j] = _bz[kk] + (_bz[kk + 1] - _bz[kk]) * f;
-        }
-        // ── Le FRISSON : perpendiculaire à la tangente LOCALE (donc juste même
-        //    en circuit qui coude), de longueur d'onde CONSTANTE mesurée sur la
-        //    LONGUEUR RÉELLE du fil (arc) et d'amplitude constante → la ride a la
-        //    même taille sur tous les échos, longs ou courts. Ancrée aux deux
-        //    bouts (enveloppe nulle), déphasée par arête (le temps est dans `ph`).
+        _barc[0] = 0;
+        for (let k = 1; k < ROUTE_PTS; k++)
+          _barc[k] = _barc[k-1] + Math.hypot(_bx[k]-_bx[k-1], _by[k]-_by[k-1], _bz[k]-_bz[k-1]);
+        const T = _barc[ROUTE_PTS-1] || 1;
         if (vis > 0.02 && edgeWaveGate > 0.001) {
-          _arc[0] = 0;
-          for (let j = 1; j < RP; j++)
-            _arc[j] = _arc[j-1] + Math.hypot(_px[j]-_px[j-1], _py[j]-_py[j-1], _pz[j]-_pz[j-1]);
-          const total = _arc[RP-1] || 1;
+          // ── DENTS DE SCIE EXACTES. On pose un sommet à CHAQUE extremum (tous
+          //    les λ/2), sur le vrai trajet, décalé de ±amp perpendiculairement à
+          //    la tangente locale. La ligne brisée EST le triangle : aucun repli
+          //    d'échantillonnage, donc le MÊME motif sur TOUS les échos quelle que
+          //    soit leur longueur (un long en porte plus de dents, un court moins,
+          //    mais la dent est identique). C'est ce qui supprime la variation
+          //    « certains plats, d'autres en dents » d'un échantillonnage uniforme.
+          //    Le nombre de sommets suit la longueur ; le reste du tampon se replie
+          //    sur l'arrivée (segments nuls, invisibles).
           const amp = WAVE_AMP * edgeWaveGate;
-          const invLambda = 1 / WAVE_WAVELENGTH;              // dents par unité de longueur — CONSTANT
-          const tcyc = i * 0.27 - now * WAVE_SPEED;           // phase (arête + temps), en CYCLES
-          for (let j = 1; j < RP - 1; j++) {
-            let tx = _px[j+1] - _px[j-1], ty = _py[j+1] - _py[j-1];   // tangente locale (plan XY)
+          const phase = i * 0.27 - now * WAVE_SPEED;     // cycles ; le temps fait dériver les dents
+          let v = 0, bi = 0;
+          _px[v] = _bx[0]; _py[v] = _by[0]; _pz[v] = _bz[0]; v++;     // départ, ancré au nœud
+          for (let n = Math.floor(2 * phase) - 1; v < RP - 1; n++) {
+            const s = (0.5 * n - phase) * WAVE_WAVELENGTH;           // extrema successifs, espacés de λ/2
+            if (s <= 0) continue;
+            if (s >= T) break;
+            while (bi < ROUTE_PTS - 2 && _barc[bi+1] < s) bi++;
+            const seg = (_barc[bi+1] - _barc[bi]) || 1, f = (s - _barc[bi]) / seg;
+            const bx = _bx[bi] + (_bx[bi+1]-_bx[bi])*f;
+            const by = _by[bi] + (_by[bi+1]-_by[bi])*f;
+            const bz = _bz[bi] + (_bz[bi+1]-_bz[bi])*f;
+            let tx = _bx[bi+1]-_bx[bi], ty = _by[bi+1]-_by[bi];       // tangente du segment de base (plan XY)
             const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-            // Onde TRIANGLE (dents de scie) : plus tranchante qu'une sinusoïde.
-            let pc = _arc[j] * invLambda + tcyc; pc -= Math.floor(pc);   // fraction de cycle [0,1)
-            const tri = 1 - 4 * Math.abs(pc - 0.5);                       // triangle [-1,1], pics nets
-            const w = amp * Math.sin(Math.PI * _arc[j] / total) * tri;
-            _ox[j] = -ty * w; _oy[j] = tx * w;   // perpendiculaire = tangente tournée de 90°
+            const w = ((n & 1) ? amp : -amp) * Math.sin(Math.PI * s / T);   // ±amp, enveloppe nulle aux bouts
+            _px[v] = bx - ty*w; _py[v] = by + tx*w; _pz[v] = bz; v++;
           }
-          for (let j = 1; j < RP - 1; j++) { _px[j] += _ox[j]; _py[j] += _oy[j]; }
+          _px[v] = _bx[ROUTE_PTS-1]; _py[v] = _by[ROUTE_PTS-1]; _pz[v] = _bz[ROUTE_PTS-1]; v++;   // arrivée, ancrée
+          for (; v < RP; v++) { _px[v]=_bx[ROUTE_PTS-1]; _py[v]=_by[ROUTE_PTS-1]; _pz[v]=_bz[ROUTE_PTS-1]; }
+        } else {
+          // Pas d'ondulation (de loin, ou au repli) : ré-échantillonnage uniforme du trajet droit.
+          for (let j = 0; j < RP; j++) {
+            const s = j / (RP - 1) * (ROUTE_PTS - 1);
+            const kk = Math.min(ROUTE_PTS - 2, Math.floor(s)), f = s - kk;
+            _px[j] = _bx[kk] + (_bx[kk + 1] - _bx[kk]) * f;
+            _py[j] = _by[kk] + (_by[kk + 1] - _by[kk]) * f;
+            _pz[j] = _bz[kk] + (_bz[kk + 1] - _bz[kk]) * f;
+          }
         }
       }
       // ── Les sommets deviennent des SEGMENTS : LineSegments consomme les
