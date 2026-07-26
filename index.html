@@ -3566,13 +3566,19 @@ function pathBranchVisibility(ids) {
 }
 
 // L'ONDULATION des échos : un déplacement perpendiculaire, en onde qui court le
-// long du fil (WAVE_TWOPI_N longueurs d'onde) et oscille dans le temps
-// (WAVE_SPEED). Ce mouvement propre les distingue des connecteurs tracés,
-// immobiles. L'amplitude croît un peu avec la longueur, bornée.
-const WAVE_RENDER_PTS = 49;            // finesse de rendu des échos (voir makeEdgeRenderer) : assez de sommets pour une onde SERRÉE sans zigzag
-const WAVE_TWOPI_N = Math.PI * 2 * 10; // ~10 oscillations le long d'un fil — courte longueur d'onde (« UV »), pas 1-2 grandes vagues
-const WAVE_SPEED = 0.0022;             // rad/ms — oscillation douce (~3 s), inchangée
-const WAVE_AMP_MIN = 0.18, WAVE_AMP_K = 0.001, WAVE_AMP_MAX = 0.4;  // MINUSCULE : un frisson, pas une vague
+// long du fil et oscille dans le temps (WAVE_SPEED). Ce mouvement propre les
+// distingue des connecteurs tracés, immobiles.
+//
+// « ONDULER PAREIL » : la longueur d'onde est CONSTANTE en unités-monde
+// (WAVE_WAVELENGTH), pas un nombre fixe de rides par fil. Chaque ride a donc la
+// même taille partout — un long écho en porte beaucoup, un court peu, mais la
+// ride est identique. L'amplitude est constante elle aussi (WAVE_AMP). La
+// finesse de rendu (WAVE_RENDER_PTS) doit couvrir le PLUS LONG écho (~48 rides à
+// λ=6) sans repli d'échantillonnage.
+const WAVE_RENDER_PTS = 181;           // sommets par écho (les connecteurs gardent ROUTE_PTS) — assez pour le plus long circuit coudé
+const WAVE_WAVELENGTH = 6;             // longueur d'onde constante (u) — ~30 rides sur un écho médian (~170 u)
+const WAVE_SPEED = 0.0031;             // rad/ms — ~2 s par cycle
+const WAVE_AMP = 0.35;                 // amplitude MINUSCULE et constante (× la porte de zoom)
 // Discrétion + économie : l'ondulation est PILOTÉE PAR LE ZOOM. On mesure les
 // pixels par unité-monde (viewport / hauteur-monde vue) ; en-dessous de FAR on
 // n'ondule pas du tout (de loin les fils se suivent, droits), au-dessus de NEAR
@@ -3580,7 +3586,7 @@ const WAVE_AMP_MIN = 0.18, WAVE_AMP_K = 0.001, WAVE_AMP_MAX = 0.4;  // MINUSCULE
 // est posé chaque image par la boucle et lu dans update() ; à 0, on cesse même
 // de réécrire la géométrie des échos — aucun coût au repos (le cas le plus
 // fréquent, en vue d'ensemble). Coupée aussi en « mouvement réduit ».
-const WAVE_FAR_PXU = 9, WAVE_NEAR_PXU = 24;
+const WAVE_FAR_PXU = 5, WAVE_NEAR_PXU = 13;  // seuils bas : l'ondulation reste visible un peu plus loin
 const WAVE_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let edgeWaveGate = 0;        // 0 = pas d'ondulation ; 1 = pleine
 let edgeWaveWasPlaying = false;
@@ -3654,6 +3660,12 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
   const _bx = wave ? new Float64Array(ROUTE_PTS) : null;
   const _by = wave ? new Float64Array(ROUTE_PTS) : null;
   const _bz = wave ? new Float64Array(ROUTE_PTS) : null;
+  // Pour l'onde : longueur cumulée le long du tracé (_arc) et décalage à ajouter
+  // (_ox/_oy), calculé à part pour que la tangente locale se lise sur le tracé
+  // NON déformé avant d'y poser l'onde.
+  const _arc = wave ? new Float64Array(RP) : null;
+  const _ox = wave ? new Float64Array(RP) : null;
+  const _oy = wave ? new Float64Array(RP) : null;
   const _pt = { x: 0, y: 0, z: 0 };
   function update() {
     const now = performance.now();   // horloge de l'ondulation (échos)
@@ -3711,19 +3723,26 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
           _py[j] = _by[kk] + (_by[kk + 1] - _by[kk]) * f;
           _pz[j] = _bz[kk] + (_bz[kk + 1] - _bz[kk]) * f;
         }
-        // ── Le FRISSON : onde perpendiculaire SERRÉE et MINUSCULE, ancrée aux
-        //    deux extrémités (enveloppe nulle aux bords), déphasée par arête.
+        // ── Le FRISSON : perpendiculaire à la tangente LOCALE (donc juste même
+        //    en circuit qui coude), de longueur d'onde CONSTANTE mesurée sur la
+        //    LONGUEUR RÉELLE du fil (arc) et d'amplitude constante → la ride a la
+        //    même taille sur tous les échos, longs ou courts. Ancrée aux deux
+        //    bouts (enveloppe nulle), déphasée par arête (le temps est dans `ph`).
         if (vis > 0.02 && edgeWaveGate > 0.001) {
-          const dx = b.position.x - a.position.x, dy = b.position.y - a.position.y;
-          const L = Math.hypot(dx, dy) || 1;
-          const nx = -dy / L, ny = dx / L;   // perpendiculaire dans le plan XY
-          const amp = Math.min(WAVE_AMP_MAX, WAVE_AMP_MIN + L * WAVE_AMP_K) * edgeWaveGate;
-          const ph = i * 1.7;
+          _arc[0] = 0;
+          for (let j = 1; j < RP; j++)
+            _arc[j] = _arc[j-1] + Math.hypot(_px[j]-_px[j-1], _py[j]-_py[j-1], _pz[j]-_pz[j-1]);
+          const total = _arc[RP-1] || 1;
+          const amp = WAVE_AMP * edgeWaveGate;
+          const kSpace = (Math.PI * 2) / WAVE_WAVELENGTH;   // rides par unité de longueur — CONSTANT
+          const ph = i * 1.7 - now * WAVE_SPEED;
           for (let j = 1; j < RP - 1; j++) {
-            const u = j / (RP - 1);
-            const w = amp * Math.sin(Math.PI * u) * Math.sin(u * WAVE_TWOPI_N - now * WAVE_SPEED + ph);
-            _px[j] += nx * w; _py[j] += ny * w;
+            let tx = _px[j+1] - _px[j-1], ty = _py[j+1] - _py[j-1];   // tangente locale (plan XY)
+            const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+            const w = amp * Math.sin(Math.PI * _arc[j] / total) * Math.sin(_arc[j] * kSpace + ph);
+            _ox[j] = -ty * w; _oy[j] = tx * w;   // perpendiculaire = tangente tournée de 90°
           }
+          for (let j = 1; j < RP - 1; j++) { _px[j] += _ox[j]; _py[j] += _oy[j]; }
         }
       }
       // ── Les sommets deviennent des SEGMENTS : LineSegments consomme les
