@@ -3834,7 +3834,12 @@ function makeThickConnector(baseOpacity, dashed = false) {
   const posBuf = geo.attributes.instanceStart.data, colBuf = geo.attributes.instanceColorStart.data;
   const P = posBuf.array, C = colBuf.array;
   const mat = new LineMaterial({
-    vertexColors: true, transparent: true, opacity: baseOpacity,
+    // OPAQUE (opacité 1), le fondu étant cuit dans la COULEUR (voir `fade`). En
+    // opaque, deux capsules qui se superposent (bouts ronds, aux jointures ET aux
+    // angles) se REMPLACENT au lieu de s'additionner → aucune bille claire le long
+    // du trait, tout en gardant les bouts ronds qui lissent les virages. Sur fond
+    // sombre, couleur×0,30 opaque ≈ un trait en alpha 0,30 : le rendu ne change pas.
+    vertexColors: true, transparent: true, opacity: 1,
     blending: THREE.NormalBlending, depthWrite: false, depthTest: true,   // testé (pas écrit) : le cercle du nœud masque le carrefour → se fond dedans
     worldUnits: true, linewidth: CONN_WIDTH,   // ÉPAISSEUR en unités-monde → perspective + grossit au zoom
     dashed, dashSize: 1, gapSize: 1,           // (pour le pointillé ; réglé au zoom dans la boucle)
@@ -3849,6 +3854,12 @@ function makeThickConnector(baseOpacity, dashed = false) {
   const _ca = new THREE.Color(), _cb = new THREE.Color();
   const _px = new Float64Array(ROUTE_PTS), _py = new Float64Array(ROUTE_PTS), _pz = new Float64Array(ROUTE_PTS);
   const _pt = { x: 0, y: 0, z: 0 };
+  // Fondu global du connecteur (0..1) : cuit dans la couleur au lieu de piloter
+  // l'opacité du matériau (qui reste à 1, pour que les superpositions remplacent
+  // et n'éclaircissent pas). Posé par la façade connectorEdges ; pris en compte à
+  // la prochaine update() — laquelle tourne déjà à chaque changement (updateVisuals,
+  // morph). Init à baseOpacity pour la toute première image avant le premier fondu.
+  let fade = baseOpacity;
   function update() {
     for (let i = 0; i < list.length; i++) {
       const { a, b, e } = list[i];
@@ -3865,7 +3876,7 @@ function makeThickConnector(baseOpacity, dashed = false) {
         continue;
       }
       const _la = a.userData.litMain, _lb = b.userData.litMain;
-      const vis = visibility * Math.min(1,
+      const vis = fade * visibility * Math.min(1,   // × fade : le fondu global est cuit ici (matériau opaque)
         Math.min(_la === undefined ? 1 : _la, _lb === undefined ? 1 : _lb) / 0.85);
       for (let k = 0; k < ROUTE_PTS; k++) {
         routePointAt(a.position, b.position, r, k, _pt);
@@ -3891,7 +3902,7 @@ function makeThickConnector(baseOpacity, dashed = false) {
     if (distBuf) distBuf.needsUpdate = true;
   }
   update();
-  return { lines, update, mat };
+  return { lines, update, mat, setFade(v) { fade = v; } };   // fondu cuit dans la couleur (opacité matériau = 1)
 }
 /**
  * Les POINTES DE FLÈCHE du tableau (census.arrowConnectors sur les connecteurs).
@@ -4050,18 +4061,26 @@ const conceptEdges = makeEdgeRenderer('concept', 0.14, true);
  * en oublier un (c'est l'oubli de `update()` qui avait donné le bug
  * intermittent des couleurs d'arêtes).
  */
+// Le fondu global des connecteurs (0..1). Il ne pilote PLUS l'opacité des
+// matériaux de trait (fixée à 1, pour que les superpositions remplacent au lieu
+// de s'éclaircir) : il est cuit dans la COULEUR, via setFade + la prochaine
+// update(). On le garde ici pour que le getter le rende — le morph le lit comme
+// point de départ (voir prepareLayoutMorph : connectorOpacity).
+let connFade = 0.85;
 const connectorEdges = {
   update() { connectorSolid.update(); connectorDashed.update(); arrowHeads.update(); },
   mat: {
     set opacity(v) {
-      connectorSolid.mat.opacity = v;
-      connectorDashed.mat.opacity = v;
-      // En fusion normale (voir ARROW_H), une pointe a besoin de plus
-      // d'opacité qu'un trait additif pour se lire — mais bornée, sinon elle
+      connFade = v;
+      connectorSolid.setFade(v);    // cuit dans la couleur (prise en compte à la prochaine update, déjà appelée partout)
+      connectorDashed.setFade(v);
+      // Les pointes, elles, gardent une VRAIE opacité (mesh à part, pas de
+      // superposition qui éclaircit). En fusion normale, une pointe a besoin de
+      // plus d'opacité qu'un trait pour se lire — mais bornée, sinon elle
       // redevient la tache qu'on cherchait à éviter.
       arrowHeads.mat.opacity = Math.min(0.72, v * 2.1);
     },
-    get opacity() { return connectorSolid.mat.opacity; },
+    get opacity() { return connFade; },
   },
 };
 
