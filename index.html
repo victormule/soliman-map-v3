@@ -3508,6 +3508,12 @@ function holdVisualsForLayout(snapshot) {
   return morph;
 }
 
+// Un nœud n'OCCULTE ses liens (les fait passer dessous → « se fondre dans le
+// cercle », pas de moyeux visible) que s'il est un cercle assez visible. Sous ce
+// seuil — nœud éteint, ou fondu en boîte — son mesh cesse d'écrire la profondeur
+// et le lien rejoint le CENTRE, sous l'étiquette. Réglé ici, appliqué dans
+// setNodeVisual (état posé) ET applyBoxFade (fondu cercle→boîte, par image).
+const NODE_OCCLUDE_MIN = 0.12;
 function setNodeVisual(g, mainOpacity, frameOpacity, scale) {
   const moving = layoutVisualMorph && layoutVisualMorph.nodes.get(g);
   if (moving) {
@@ -3522,6 +3528,9 @@ function setNodeVisual(g, mainOpacity, frameOpacity, scale) {
     scale = moving.scaleFrom + (moving.scaleTo - moving.scaleFrom) * t;
   }
   g.userData.mainMesh.material.opacity = mainOpacity;
+  // Cercle assez visible → il masque le carrefour des liens (ils passent dessous) ;
+  // éteint/en boîte → il libère la profondeur, le lien atteint le centre.
+  g.userData.mainMesh.material.depthWrite = mainOpacity > NODE_OCCLUDE_MIN;
   if (g.userData.frameMesh && frameOpacity !== null) g.userData.frameMesh.material.opacity = frameOpacity;
   g.userData.mainMesh.scale.setScalar(scale);
   // v2 « le cercle devient la boîte » : on retient l'opacité ALLUMÉE ici décidée,
@@ -3804,8 +3813,12 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
  *
  * Fusion NORMALE (pas additive) : l'additif accumulait aux carrefours et aux
  * jointures de segments → des « taches » blanches ; en normal, un trait épais est
- * UNIFORME. depthTest désactivé : le trait rejoint le CENTRE du nœud (sous
- * l'étiquette) au lieu d'être masqué par la sphère.
+ * UNIFORME. depthTest ACTIVÉ (depthWrite non) : là où un nœud est un CERCLE
+ * visible, il écrit sa profondeur et le trait passe DESSOUS — il « se fond dans
+ * le cercle », plus de moyeux blanchâtre au carrefour. Là où le nœud est devenu
+ * une BOÎTE (ou est éteint), son mesh cesse d'écrire la profondeur (voir
+ * NODE_OCCLUDE_MIN, setNodeVisual, applyBoxFade) : le trait rejoint alors le
+ * CENTRE, sous l'étiquette.
  *
  * `dashed` : trait pointillé. LineMaterial gère le pointillé sur ligne large ; il
  * lui faut une distance cumulée par segment (instanceDistance), qu'on remplit
@@ -3822,7 +3835,7 @@ function makeThickConnector(baseOpacity, dashed = false) {
   const P = posBuf.array, C = colBuf.array;
   const mat = new LineMaterial({
     vertexColors: true, transparent: true, opacity: baseOpacity,
-    blending: THREE.NormalBlending, depthWrite: false, depthTest: false,
+    blending: THREE.NormalBlending, depthWrite: false, depthTest: true,   // testé (pas écrit) : le cercle du nœud masque le carrefour → se fond dedans
     worldUnits: true, linewidth: CONN_WIDTH,   // ÉPAISSEUR en unités-monde → perspective + grossit au zoom
     dashed, dashSize: 1, gapSize: 1,           // (pour le pointillé ; réglé au zoom dans la boucle)
   });
@@ -3902,6 +3915,11 @@ function makeThickConnector(baseOpacity, dashed = false) {
  * une FORME, pas comme une lueur.
  */
 const ARROW_H = 1.05, ARROW_R = 0.33, ARROW_GAP = 0.3;
+// Les pointes sont en unités-monde comme les traits : de près, la perspective les
+// grossit. On les REPETISSE un peu au zoom (arrowSizeK, réglé dans la boucle) pour
+// qu'elles restent des repères discrets et ne mangent pas le nœud de tout près.
+const ARROW_NEAR_K = 0.7;     // taille au plus près, en fraction de la taille au loin
+let arrowSizeK = 1;           // facteur courant, 1 = loin (piloté par le zoom)
 function makeArrowRenderer(baseOpacity) {
   // Une pointe retient l'arête ENTIÈRE (a, b, son routage) et non ses seules
   // extrémités : en circuit, elle doit s'aligner sur le DERNIER SEGMENT parcouru,
@@ -3990,7 +4008,7 @@ function makeArrowRenderer(baseOpacity) {
         _p.copy(to.position).addScaledVector(_d, -back);
       }
       _q.setFromUnitVectors(_up, _d);
-      _scale.setScalar(visibility);
+      _scale.setScalar(visibility * arrowSizeK);   // rapetissées au zoom (voir arrowSizeK)
       _m.compose(_p, _q, _scale);
       mesh.setMatrixAt(i, _m);
       _c.set(colorFor(to.userData.node));
@@ -9944,6 +9962,9 @@ function applyBoxFade() {
     if (!g || !g.userData.mainMesh || g.userData.litMain === undefined) return;
     const k = 1 - cur * BOX_FADE_MAX;
     g.userData.mainMesh.material.opacity = g.userData.litMain * k;
+    // La boîte prend le relais du cercle : dès que la sphère s'efface, elle cesse
+    // d'écrire la profondeur → le lien traverse jusqu'au centre, sous l'étiquette.
+    g.userData.mainMesh.material.depthWrite = (g.userData.litMain * k) > NODE_OCCLUDE_MIN;
     if (g.userData.frameMesh && g.userData.litFrame !== undefined) {
       g.userData.frameMesh.material.opacity = g.userData.litFrame * k;
     }
@@ -9996,6 +10017,12 @@ function animate() {
     // pointillé, à taille d'écran ~constante → ils se resserrent quand on approche.
     connectorDashed.mat.dashSize = Math.min(DASH_MAX, DASH_PX / pxu);
     connectorDashed.mat.gapSize = Math.min(GAP_MAX, GAP_PX / pxu);
+    // Pointes de flèche : un peu plus petites de près (mêmes seuils de zoom que
+    // l'ondulation). On ne réécrit leurs matrices QUE si le facteur a bougé —
+    // donc pendant un zoom, jamais au repos (le coût reste borné au geste).
+    const tArrow = Math.min(1, Math.max(0, (pxu - WAVE_FAR_PXU) / (WAVE_NEAR_PXU - WAVE_FAR_PXU)));
+    const kArrow = 1 - tArrow * (1 - ARROW_NEAR_K);
+    if (Math.abs(kArrow - arrowSizeK) > 0.01) { arrowSizeK = kArrow; arrowHeads.update(); }
   }
   updatePathLine();
   updatePreviewLine(); // la prévisualisation du tracé suit les mêmes positions vivantes
