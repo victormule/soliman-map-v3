@@ -4021,9 +4021,13 @@ function makeArrowRenderer(baseOpacity) {
   return { mesh, update, mat, count: slots.length };
 }
 
-// Épaisseur des connecteurs, en UNITÉS-MONDE : ~1 px en vue d'ensemble, plus
-// gros au zoom et au premier plan (perspective). Réglable ici.
+// Épaisseur des connecteurs, en UNITÉS-MONDE : perspective (plus gros au premier
+// plan) et grossit au zoom. Mais un trait en unités-monde DISPARAÎT de très loin
+// (il projette moins d'1 px). D'où un PLANCHER en pixels (MIN_CONN_PX, appliqué
+// dans la boucle) : de loin, l'épaisseur bascule sur ce plancher-écran → le trait
+// reste toujours visible (~1,5 px) ; de près, l'unité-monde reprend la main.
 const CONN_WIDTH = 0.17;
+const MIN_CONN_PX = 1.5;   // largeur ÉCRAN minimale, de loin — un trait ne disparaît jamais
 const connectorSolid = makeThickConnector(0.85, false);   // trait plein = ligne LARGE, épaisseur en unités-monde
 const connectorDashed = makeThickConnector(0.85, true);   // pointillé = ligne LARGE aussi, motif de tirets réglé au zoom
 const arrowHeads = makeArrowRenderer(0.30);
@@ -10012,9 +10016,15 @@ function animate() {
       : Math.min(1, Math.max(0, (pxu - WAVE_FAR_PXU) / (WAVE_NEAR_PXU - WAVE_FAR_PXU)));
     if (edgeWaveGate > 0.001) { conceptEdges.update(); edgeWaveWasPlaying = true; }
     else if (edgeWaveWasPlaying) { conceptEdges.update(); edgeWaveWasPlaying = false; } // une dernière passe : fils remis droits
-    // L'épaisseur des connecteurs est en UNITÉS-MONDE (perspective + grossit au
-    // zoom, ~1 px de loin) : rien à piloter ici. On ne règle que les tirets du
-    // pointillé, à taille d'écran ~constante → ils se resserrent quand on approche.
+    // Épaisseur des connecteurs : unités-monde de près (perspective + grossit au
+    // zoom), mais PLANCHER en pixels de loin pour qu'aucun trait ne disparaisse
+    // sous 1 px. On prend le max entre la largeur-monde et la largeur-monde qui
+    // vaut MIN_CONN_PX à l'écran (MIN_CONN_PX / pxu). Réglé chaque image, comme
+    // les tirets. `worldUnits` reste vrai → la perspective joue toujours de près.
+    const wConn = Math.max(CONN_WIDTH, MIN_CONN_PX / pxu);
+    connectorSolid.mat.linewidth = wConn;
+    connectorDashed.mat.linewidth = wConn;
+    // Tirets du pointillé, à taille d'écran ~constante → ils se resserrent quand on approche.
     connectorDashed.mat.dashSize = Math.min(DASH_MAX, DASH_PX / pxu);
     connectorDashed.mat.gapSize = Math.min(GAP_MAX, GAP_PX / pxu);
     // Pointes de flèche : un peu plus petites de près (mêmes seuils de zoom que

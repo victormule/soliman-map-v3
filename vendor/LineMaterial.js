@@ -294,7 +294,7 @@ ShaderLib[ 'line' ] = {
 		#include <logdepthbuf_pars_fragment>
 		#include <clipping_planes_pars_fragment>
 
-		vec2 closestLineToLine(vec3 p1, vec3 p2, vec3 p3, vec3 p4) {
+		vec2 closestLineToLine(vec3 p1, vec3 p2, vec3 p3, vec3 p4, out float muaRaw) {
 
 			float mua;
 			float mub;
@@ -315,6 +315,7 @@ ShaderLib[ 'line' ] = {
 			float numer = d1343 * d4321 - d1321 * d4343;
 
 			mua = numer / denom;
+			muaRaw = mua;                 // paramètre NON borné → sert à couper les bouts ronds (butt cap)
 			mua = clamp( mua, 0.0, 1.0 );
 			mub = ( d1343 + d4321 * ( mua ) ) / d4343;
 			mub = clamp( mub, 0.0, 1.0 );
@@ -342,7 +343,15 @@ ShaderLib[ 'line' ] = {
 				// Find the closest points on the view ray and the line segment
 				vec3 rayEnd = normalize( worldPos.xyz ) * 1e5;
 				vec3 lineDir = worldEnd - worldStart;
-				vec2 params = closestLineToLine( worldStart, worldEnd, vec3( 0.0, 0.0, 0.0 ), rayEnd );
+				float muaRaw;
+				vec2 params = closestLineToLine( worldStart, worldEnd, vec3( 0.0, 0.0, 0.0 ), rayEnd, muaRaw );
+
+				// Bouts DROITS (butt cap) au lieu de ronds : sinon deux capsules
+				// consécutives d'un même trait superposent leurs demi-disques à la
+				// jointure → une petite bille claire à chaque nœud de segment, tout
+				// le long. En jetant la calotte (le point le plus proche tombe hors
+				// du segment), les segments s'aboutent bord à bord → trait homogène.
+				if ( muaRaw < 0.0 || muaRaw > 1.0 ) discard;
 
 				vec3 p1 = worldStart + lineDir * params.x;
 				vec3 p2 = rayEnd * params.y;
