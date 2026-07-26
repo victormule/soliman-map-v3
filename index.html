@@ -2295,6 +2295,10 @@ import { EffectComposer } from './vendor/EffectComposer.js';
 import { RenderPass } from './vendor/RenderPass.js';
 import { UnrealBloomPass } from './vendor/UnrealBloomPass.js';
 import { CSS2DRenderer, CSS2DObject } from './vendor/CSS2DRenderer.js';
+// Lignes LARGES pour les vrais liens (WebGL ne trace pas de trait épais nativement).
+import { LineSegments2 } from './vendor/LineSegments2.js';
+import { LineSegmentsGeometry } from './vendor/LineSegmentsGeometry.js';
+import { LineMaterial } from './vendor/LineMaterial.js';
 // Le MÊME routeur que celui du build (§ 9 de build-graph.mjs). La cartographie
 // arrive routée dans graph.json ; le recentrage, dont les positions se calculent
 // ici, se route ici — avec la même règle, parce que c'est le même fichier.
@@ -3578,7 +3582,9 @@ function pathBranchVisibility(ids) {
 const WAVE_RENDER_PTS = 281;           // sommets par écho — assez pour beaucoup de dents serrées, même sur le plus long circuit coudé (les connecteurs gardent ROUTE_PTS)
 const WAVE_WAVELENGTH = 3;             // longueur d'onde constante (u), COURTE : plein de mini-dents compactes, de même taille sur tous les échos
 const WAVE_SPEED = 0.0005;             // cycles/ms — ~2 s par dent (dérive dans le temps)
-const WAVE_AMP = 0.35;                 // amplitude MINUSCULE et constante : le fil reste droit dans l'ensemble (× la porte de zoom)
+// Amplitude : plus PLATE en 2D (cartographie) qu'en 3D (constellation) — à plat,
+// une onde haute brouille la lecture des fils ; en volume, elle est parfaite.
+const WAVE_AMP_2D = 0.16, WAVE_AMP_3D = 0.35;  // hauteur de la dent (× la porte de zoom)
 // Discrétion + économie : l'ondulation est PILOTÉE PAR LE ZOOM. On mesure les
 // pixels par unité-monde (viewport / hauteur-monde vue) ; en-dessous de FAR on
 // n'ondule pas du tout (de loin les fils se suivent, droits), au-dessus de NEAR
@@ -3733,7 +3739,7 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
           for (let j = 1; j < RP; j++)
             _arc[j] = _arc[j-1] + Math.hypot(_px[j]-_px[j-1], _py[j]-_py[j-1], _pz[j]-_pz[j-1]);
           const total = _arc[RP-1] || 1;
-          const amp = WAVE_AMP * edgeWaveGate;
+          const amp = (state.layoutMode === 'constellation' ? WAVE_AMP_3D : WAVE_AMP_2D) * edgeWaveGate;
           const invLambda = 1 / WAVE_WAVELENGTH;              // dents par unité de longueur — CONSTANT
           const tcyc = i * 0.27 - now * WAVE_SPEED;           // phase (arête + temps), en CYCLES
           for (let j = 1; j < RP - 1; j++) {
@@ -3781,6 +3787,95 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
     geo.attributes.position.needsUpdate = true;
     geo.attributes.color.needsUpdate = true;
     if (dashed) geo.attributes.lineDistance.needsUpdate = true;
+  }
+  update();
+  return { lines, update, mat };
+}
+
+/**
+ * Les connecteurs (traits pleins ET pointillés) en LIGNES LARGES (LineSegments2) :
+ * une VRAIE épaisseur, en UNITÉS-MONDE — donc un effet de PERSPECTIVE en 3D (un
+ * lien proche est plus gros qu'un lien lointain) et un grossissement au zoom, le
+ * lien redevenant ~1 px quand on s'éloigne. Même logique que makeEdgeRenderer
+ * côté connecteur (visibilité, atténuation par litMain, couleur cuite le long du
+ * trait, morphing par routePointAt), mais les sommets vont dans les tampons
+ * INSTANCIÉS de LineSegmentsGeometry : par segment, 6 flottants (début xyz, fin
+ * xyz) pour la position, 6 pour la couleur. On écrit en place + needsUpdate.
+ *
+ * Fusion NORMALE (pas additive) : l'additif accumulait aux carrefours et aux
+ * jointures de segments → des « taches » blanches ; en normal, un trait épais est
+ * UNIFORME. depthTest désactivé : le trait rejoint le CENTRE du nœud (sous
+ * l'étiquette) au lieu d'être masqué par la sphère.
+ *
+ * `dashed` : trait pointillé. LineMaterial gère le pointillé sur ligne large ; il
+ * lui faut une distance cumulée par segment (instanceDistance), qu'on remplit
+ * nous-mêmes (par connecteur) ; la taille des tirets est réglée au zoom (boucle).
+ */
+function makeThickConnector(baseOpacity, dashed = false) {
+  const list = EDGES.filter(e => e.type === 'connector' && !!e.dashed === dashed)
+    .map(e => ({ a: nodeById.get(e.source)?.__group, b: nodeById.get(e.target)?.__group, e }))
+    .filter(x => x.a && x.b);
+  const geo = new LineSegmentsGeometry();
+  geo.setPositions(new Float32Array(list.length * ROUTE_SEGS * 6));   // alloue instanceStart/End
+  geo.setColors(new Float32Array(list.length * ROUTE_SEGS * 6));      // alloue instanceColorStart/End
+  const posBuf = geo.attributes.instanceStart.data, colBuf = geo.attributes.instanceColorStart.data;
+  const P = posBuf.array, C = colBuf.array;
+  const mat = new LineMaterial({
+    vertexColors: true, transparent: true, opacity: baseOpacity,
+    blending: THREE.NormalBlending, depthWrite: false, depthTest: false,
+    worldUnits: true, linewidth: CONN_WIDTH,   // ÉPAISSEUR en unités-monde → perspective + grossit au zoom
+    dashed, dashSize: 1, gapSize: 1,           // (pour le pointillé ; réglé au zoom dans la boucle)
+  });
+  mat.resolution.set(window.innerWidth, window.innerHeight);   // requis par LineMaterial
+  const lines = new LineSegments2(geo, mat);
+  lines.frustumCulled = false;   // même raison que les autres traits : pas d'élimination au recentrage
+  lines.renderOrder = 1;         // au-dessus des échos et sous les nœuds/étiquettes
+  scene.add(lines);
+  let distArr = null, distBuf = null;
+  if (dashed) { lines.computeLineDistances(); distBuf = geo.attributes.instanceDistanceStart.data; distArr = distBuf.array; }
+  const _ca = new THREE.Color(), _cb = new THREE.Color();
+  const _px = new Float64Array(ROUTE_PTS), _py = new Float64Array(ROUTE_PTS), _pz = new Float64Array(ROUTE_PTS);
+  const _pt = { x: 0, y: 0, z: 0 };
+  function update() {
+    for (let i = 0; i < list.length; i++) {
+      const { a, b, e } = list[i];
+      const r = routeOf(e);
+      const o = i * ROUTE_SEGS * 6;   // 6 flottants par segment
+      const visibility = edgeVisibilityFactor(e, a, b);
+      if (visibility <= 1e-4) {       // extrémité éteinte : on replie sur un point (segments nuls, invisibles)
+        for (let s = 0; s < ROUTE_SEGS; s++) {
+          const g = o + s * 6;
+          P[g]=P[g+3]=a.position.x; P[g+1]=P[g+4]=a.position.y; P[g+2]=P[g+5]=a.position.z;
+          C[g]=C[g+1]=C[g+2]=C[g+3]=C[g+4]=C[g+5]=0;
+          if (distArr) { const di=(i*ROUTE_SEGS+s)*2; distArr[di]=0; distArr[di+1]=0; }
+        }
+        continue;
+      }
+      const _la = a.userData.litMain, _lb = b.userData.litMain;
+      const vis = visibility * Math.min(1,
+        Math.min(_la === undefined ? 1 : _la, _lb === undefined ? 1 : _lb) / 0.85);
+      for (let k = 0; k < ROUTE_PTS; k++) {
+        routePointAt(a.position, b.position, r, k, _pt);
+        _px[k] = _pt.x; _py[k] = _pt.y; _pz[k] = _pt.z;
+      }
+      _ca.set(colorFor(a.userData.node)); _cb.set(colorFor(b.userData.node));
+      let run = 0;
+      for (let s = 0; s < ROUTE_SEGS; s++) {
+        const g = o + s * 6;
+        P[g]=_px[s];     P[g+1]=_py[s];     P[g+2]=_pz[s];       // début du segment = point s
+        P[g+3]=_px[s+1]; P[g+4]=_py[s+1];   P[g+5]=_pz[s+1];     // fin = point s+1
+        const t0 = s / ROUTE_SEGS, t1 = (s + 1) / ROUTE_SEGS;    // dégradé le long du trait
+        C[g]  =(_ca.r+(_cb.r-_ca.r)*t0)*vis; C[g+1]=(_ca.g+(_cb.g-_ca.g)*t0)*vis; C[g+2]=(_ca.b+(_cb.b-_ca.b)*t0)*vis;
+        C[g+3]=(_ca.r+(_cb.r-_ca.r)*t1)*vis; C[g+4]=(_ca.g+(_cb.g-_ca.g)*t1)*vis; C[g+5]=(_ca.b+(_cb.b-_ca.b)*t1)*vis;
+        if (distArr) {   // distance cumulée PAR connecteur → motif de pointillé propre
+          const di=(i*ROUTE_SEGS+s)*2, len=Math.hypot(_px[s+1]-_px[s], _py[s+1]-_py[s], _pz[s+1]-_pz[s]);
+          distArr[di]=run; run+=len; distArr[di+1]=run;
+        }
+      }
+    }
+    posBuf.needsUpdate = true;
+    colBuf.needsUpdate = true;
+    if (distBuf) distBuf.needsUpdate = true;
   }
   update();
   return { lines, update, mat };
@@ -3908,16 +4003,14 @@ function makeArrowRenderer(baseOpacity) {
   return { mesh, update, mat, count: slots.length };
 }
 
-const connectorSolid = makeEdgeRenderer('connector', 0.30, true, false);
-const connectorDashed = makeEdgeRenderer('connector', 0.30, true, true);
+// Épaisseur des connecteurs, en UNITÉS-MONDE : ~1 px en vue d'ensemble, plus
+// gros au zoom et au premier plan (perspective). Réglable ici.
+const CONN_WIDTH = 0.17;
+const connectorSolid = makeThickConnector(0.85, false);   // trait plein = ligne LARGE, épaisseur en unités-monde
+const connectorDashed = makeThickConnector(0.85, true);   // pointillé = ligne LARGE aussi, motif de tirets réglé au zoom
 const arrowHeads = makeArrowRenderer(0.30);
-// Les VRAIS liens (connecteurs) se renforcent quand on s'en approche : plus
-// opaques (donc plus présents à l'œil, et plus « épais » via le bloom — WebGL ne
-// trace pas de trait large), et, pour les pointillés, des tirets à taille d'ÉCRAN
-// ~constante : de près ils se resserrent au lieu de s'étirer en gros pavés, donc
-// plus lisibles. Piloté par le même « pixels par unité-monde » (pxu) que l'onde.
-const CONN_FAR_PXU = 6, CONN_NEAR_PXU = 30;              // fenêtre de renforcement (de loin → de près)
-const CONN_OPACITY_BASE = 0.30, CONN_OPACITY_NEAR = 0.6; // opacité de repos → de près
+// Pointillés : tirets à taille d'ÉCRAN ~constante (se resserrent de près, au lieu
+// de s'étirer en gros pavés) — plus lisibles. Réglé au zoom (pxu) dans la boucle.
 const DASH_PX = 6, GAP_PX = 4;                           // taille d'écran visée des tirets/espaces (px)
 const DASH_MAX = 1.6, GAP_MAX = 1.2;                     // de loin, on ne dépasse pas le motif d'origine
 // Les échos reprennent la COULEUR DES POST-ITS (comme la légende),
@@ -9359,6 +9452,8 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight);
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  connectorSolid.mat.resolution.set(window.innerWidth, window.innerHeight);   // LineMaterial : la résolution sert à l'anticrénelage/épaisseur
+  connectorDashed.mat.resolution.set(window.innerWidth, window.innerHeight);
 });
 
 // ============================================================ idle auto-rotate
@@ -9896,11 +9991,9 @@ function animate() {
       : Math.min(1, Math.max(0, (pxu - WAVE_FAR_PXU) / (WAVE_NEAR_PXU - WAVE_FAR_PXU)));
     if (edgeWaveGate > 0.001) { conceptEdges.update(); edgeWaveWasPlaying = true; }
     else if (edgeWaveWasPlaying) { conceptEdges.update(); edgeWaveWasPlaying = false; } // une dernière passe : fils remis droits
-    // Renforcement des connecteurs de près (opacité + pointillés resserrés).
-    const connNear = Math.min(1, Math.max(0, (pxu - CONN_FAR_PXU) / (CONN_NEAR_PXU - CONN_FAR_PXU)));
-    const connOp = CONN_OPACITY_BASE + connNear * (CONN_OPACITY_NEAR - CONN_OPACITY_BASE);
-    connectorSolid.mat.opacity = connOp;
-    connectorDashed.mat.opacity = connOp;
+    // L'épaisseur des connecteurs est en UNITÉS-MONDE (perspective + grossit au
+    // zoom, ~1 px de loin) : rien à piloter ici. On ne règle que les tirets du
+    // pointillé, à taille d'écran ~constante → ils se resserrent quand on approche.
     connectorDashed.mat.dashSize = Math.min(DASH_MAX, DASH_PX / pxu);
     connectorDashed.mat.gapSize = Math.min(GAP_MAX, GAP_PX / pxu);
   }
