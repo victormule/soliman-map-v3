@@ -3575,10 +3575,10 @@ function pathBranchVisibility(ids) {
 // ride est identique. L'amplitude est constante elle aussi (WAVE_AMP). La
 // finesse de rendu (WAVE_RENDER_PTS) doit couvrir le PLUS LONG écho (~48 rides à
 // λ=6) sans repli d'échantillonnage.
-const WAVE_RENDER_PTS = 181;           // sommets par écho (les connecteurs gardent ROUTE_PTS) — assez pour le plus long circuit coudé
-const WAVE_WAVELENGTH = 6;             // longueur d'onde constante (u) — ~30 rides sur un écho médian (~170 u)
-const WAVE_SPEED = 0.0031;             // rad/ms — ~2 s par cycle
-const WAVE_AMP = 0.35;                 // amplitude MINUSCULE et constante (× la porte de zoom)
+const WAVE_RENDER_PTS = 281;           // sommets par écho — assez pour beaucoup de dents serrées, même sur le plus long circuit coudé (les connecteurs gardent ROUTE_PTS)
+const WAVE_WAVELENGTH = 3;             // longueur d'onde constante (u), COURTE : plein de mini-dents compactes, de même taille sur tous les échos
+const WAVE_SPEED = 0.0005;             // cycles/ms — ~2 s par dent (dérive dans le temps)
+const WAVE_AMP = 0.35;                 // amplitude MINUSCULE et constante : le fil reste droit dans l'ensemble (× la porte de zoom)
 // Discrétion + économie : l'ondulation est PILOTÉE PAR LE ZOOM. On mesure les
 // pixels par unité-monde (viewport / hauteur-monde vue) ; en-dessous de FAR on
 // n'ondule pas du tout (de loin les fils se suivent, droits), au-dessus de NEAR
@@ -3734,12 +3734,15 @@ function makeEdgeRenderer(edgeType, baseOpacity, additive, dashed = false, tint 
             _arc[j] = _arc[j-1] + Math.hypot(_px[j]-_px[j-1], _py[j]-_py[j-1], _pz[j]-_pz[j-1]);
           const total = _arc[RP-1] || 1;
           const amp = WAVE_AMP * edgeWaveGate;
-          const kSpace = (Math.PI * 2) / WAVE_WAVELENGTH;   // rides par unité de longueur — CONSTANT
-          const ph = i * 1.7 - now * WAVE_SPEED;
+          const invLambda = 1 / WAVE_WAVELENGTH;              // dents par unité de longueur — CONSTANT
+          const tcyc = i * 0.27 - now * WAVE_SPEED;           // phase (arête + temps), en CYCLES
           for (let j = 1; j < RP - 1; j++) {
             let tx = _px[j+1] - _px[j-1], ty = _py[j+1] - _py[j-1];   // tangente locale (plan XY)
             const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-            const w = amp * Math.sin(Math.PI * _arc[j] / total) * Math.sin(_arc[j] * kSpace + ph);
+            // Onde TRIANGLE (dents de scie) : plus tranchante qu'une sinusoïde.
+            let pc = _arc[j] * invLambda + tcyc; pc -= Math.floor(pc);   // fraction de cycle [0,1)
+            const tri = 1 - 4 * Math.abs(pc - 0.5);                       // triangle [-1,1], pics nets
+            const w = amp * Math.sin(Math.PI * _arc[j] / total) * tri;
             _ox[j] = -ty * w; _oy[j] = tx * w;   // perpendiculaire = tangente tournée de 90°
           }
           for (let j = 1; j < RP - 1; j++) { _px[j] += _ox[j]; _py[j] += _oy[j]; }
