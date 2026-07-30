@@ -3567,7 +3567,15 @@ function applyLayoutVisualMorph(t) {
     const frame = entry.frameFrom === null ? null : entry.frameFrom + (entry.frameTo - entry.frameFrom) * t;
     const scale = entry.scaleFrom + (entry.scaleTo - entry.scaleFrom) * t;
     g.userData.mainMesh.material.opacity = main;
-    if (g.userData.frameMesh && frame !== null) g.userData.frameMesh.material.opacity = frame;
+    // Les liens lisent `litMain` (opacité ALLUMÉE du nœud) pour s'éteindre AVEC
+    // lui. Pendant la métamorphose, seul `material.opacity` était mené vers sa
+    // cible ; `litMain` restait figé sur la valeur de t=0. À la sortie d'un
+    // recentrage, un nœud rallumé (autre composante, au-delà des sauts) partait
+    // donc de litMain=0 et n'en bougeait plus : son lien réapparaissait mais
+    // restait NOIR jusqu'au prochain updateVisuals (une case de légende). On mène
+    // donc `litMain`/`litFrame` sur la même rampe — les liens suivent leurs nœuds.
+    g.userData.litMain = main;
+    if (g.userData.frameMesh && frame !== null) { g.userData.frameMesh.material.opacity = frame; g.userData.litFrame = frame; }
     g.userData.mainMesh.scale.setScalar(scale);
   }
   connectorEdges.mat.opacity = layoutVisualMorph.connectorFrom
@@ -7116,6 +7124,13 @@ function setLayout(mode, onDone) {
   updateMini();
   syncUrl();
   choreographTransition(reculDir, currentPosKey(), () => arriveAfterLayout(onDone), routeSnapshot, visualSnapshot);
+  // La métamorphose fige l'image de départ (opacités comprises) et la mène vers
+  // les CIBLES que calcule updateVisuals. Une bascule qui interrompt une autre
+  // transition (sortie de recentrage encore en vol) partirait sinon d'une
+  // opacité intermédiaire figée comme cible : les liens resteraient au voile du
+  // recentrage. updateVisuals recale ces cibles sur l'état logique courant — sans
+  // effet quand la bascule survient au repos (l'image affichée EST déjà la cible).
+  updateVisuals();
   // Un recentrage commencé en constellation n'avait encore aucune route 2D :
   // le retour à la cartographie doit lancer son calcul, pas rester en attente.
   requestEgoRoutes();
@@ -7674,10 +7689,16 @@ function exitEgo(onDone) {
   if (!state.egoId) return;
   const routeSnapshot = captureDisplayedRoutes();
   const visualSnapshot = captureDisplayedVisuals();
+  // Sortie NETTE : on ne quitte pas seulement le nœud focal, on efface toute la
+  // profondeur du recentrage (comme le passage direct data→mot, plus bas). Sans
+  // ce remise à zéro, « nombre de sauts » reste posé et la prochaine lecture le
+  // retrouve — la fiche annonce une profondeur qui n'a plus de recentrage.
   state.egoId = null;
   state.egoDist = null;
+  state.egoMaxD = 0;
+  state.egoDepth = 0;
   egoOption.hidden = true;
-  egoBar.classList.remove('show');
+  egoBar.classList.remove('show', 'lexical');
   renderPathPanel();   // les branches signalées « hors champ » redeviennent normales
   // De retour sur la cartographie, c'est le routage du build qui reprend : les
   // routes du recentrage doivent partir, sinon elles resteraient posées sur des
