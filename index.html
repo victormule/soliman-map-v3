@@ -1604,10 +1604,10 @@
     <details class="md-step">
       <summary><span class="md-n">§ 1</span><span class="md-h">Source et extraction</span></summary>
       <p>Le point de départ est l'export JSON de l'API Miro du tableau
-        (<b id="md-src-2">…</b>). Un item devient un nœud s'il porte du texte —
-        les images font exception : elles parlent en montrant, et par leur
-        <b>texte alternatif</b> quand les auteur·rices en ont écrit un (il
-        devient alors leur texte, cherchable comme le reste).</p>
+        (<b id="md-src-2">…</b>). Un item devient un nœud s'il porte du texte.
+        Les images font exception : une image sans texte reste un nœud, et son
+        <b>texte alternatif</b>, quand les auteur·rices en ont écrit un, devient
+        son texte — cherchable comme le reste.</p>
       <p>Le texte est reconstitué depuis le HTML de Miro : balises retirées,
         entités décodées, <code>&lt;br&gt;</code> et <code>&lt;/p&gt;</code>
         convertis en sauts de ligne. Les <b>espaces insécables (U+00A0) sont
@@ -1916,16 +1916,15 @@
         mêmes règles — c'est le même code. Le calcul s'y fait dans un fil
         séparé : la carte reste maniable pendant ce temps, en tracé direct, et le
         circuit paraît dès qu'il est prêt.</p>
-      <p>Il est <b>glouton</b> : les liens
-        sont posés du plus <b>contraint</b> au plus libre — celui qui traverse une
-        zone dense tranche pendant que le plan est vide, l'autre saura toujours
-        contourner —, chacun retenant parmi
-        <b id="md-route-cands">…</b> chemins possibles celui qui coûte le moins
-        face à ce qui est déjà posé : un croisement, un recouvrement, un nœud
-        rasé, le <b>frôlement</b> de deux traits parallèles trop serrés (compté
-        au mètre longé, pas à la rencontre), chaque <b>coude</b>, une
-        <b>approche</b> trop courte pour poser une pointe, et la longueur y
-        pèsent chacun leur poids. Les barres médianes s'aimantent sur une
+      <p>Il est <b>glouton</b> : les liens sont posés du plus <b>contraint</b> au
+        plus libre — celui qui traverse une zone dense tranche pendant que le plan
+        est vide, l'autre saura toujours contourner. Chacun retient, parmi
+        <b id="md-route-cands">…</b> chemins possibles, celui qui coûte le moins
+        face à ce qui est déjà posé. Plusieurs termes y pèsent chacun leur poids :
+        un croisement, un recouvrement, un nœud rasé, le <b>frôlement</b> de deux
+        traits parallèles trop serrés (compté au mètre longé, pas à la rencontre),
+        chaque <b>coude</b>, une <b>approche</b> trop courte pour poser une pointe,
+        et la longueur. Les barres médianes s'aimantent sur une
         <b>grille de pose</b> commune, comme les pistes d'un circuit imprimé :
         deux traits voisins se suivent alors à pas régulier au lieu de se
         coller au hasard. Puis vient la <b>reprise</b>
@@ -2058,10 +2057,10 @@
         dépend du format de l'écran — et retient le plus exigeant des deux. Un
         écran étroit ou un téléphone à l'horizontale obtient ainsi le bon recul
         sans réglage séparé.</p>
-      <p>Toute métamorphose de disposition suit la même <b>chorégraphie en trois
-        temps</b> : recul dans l'orientation courante (lire la scène qu'on quitte),
-        métamorphose vue de loin, puis retour de face et zoom sur ce qui comptait
-        — le nœud focal, à défaut le nœud sélectionné, à défaut la zone en lumière.</p>
+      <p>Tout changement de disposition suit <b>trois temps</b> : recul dans
+        l'orientation courante (pour lire la scène qu'on quitte), transformation
+        vue de loin, puis retour de face et zoom sur ce qui compte — le nœud
+        focal, à défaut le nœud sélectionné, à défaut la zone en lumière.</p>
     </details>
 
     <details class="md-step">
@@ -2175,20 +2174,26 @@
         sont tracés — au‑delà, le graphe devient une pelote illisible qui ne dit
         plus rien. Sa mise en page emploie la même relaxation à pas borné et à
         graine fixe que la constellation, pour les mêmes raisons.</p>
-      <p><b>Croisement section × regard.</b> Une simple table de contingence sur
-        le corpus de contenu ; ses cellules filtrent la paire sur la carte. La
-        colonne « Tronc » n'y compte que du non-classé (le tronc n'a pas
-        de regards, § 3), et la couverture varie fort d'un bloc à l'autre — une
-        ligne creuse dit d'abord que la couleur n'a pas été posée là. Aucun test
-        statistique n'y est conduit : avec la moitié des regards manquants, un
-        test dirait surtout quelque chose de la lacune.</p>
-      <p><b>Croisement regard × regard.</b> Compte des <b>arêtes</b>, pas des
-        nœuds : pour chaque connecteur tracé à la main dont les deux extrémités
-        ont un regard connu, la case du couple s'incrémente — la diagonale dit le
-        dialogue d'un regard avec lui‑même, le reste le pont entre deux points de
-        vue. Restreint aux connecteurs, à l'exclusion des échos :
-        un post‑it répété ailleurs n'est pas un dialogue, c'est la même voix
-        redite. Matrice symétrique, un seul triangle affiché.</p>
+      <p><b>Croisement.</b> Un <b>sélecteur</b> met une question face à une
+        autre — ou face à elle‑même —, et la table se recalcule à chaque choix.
+        Les cinq questions du tableau (Quoi ?, Qui ?, Quand ?, Comment ?,
+        Pourquoi ?) s'y croisent librement ; les cellules filtrent la sélection
+        sur la carte.</p>
+      <p><b>Deux questions différentes : une contingence.</b> Chaque post‑it de
+        contenu est compté une fois, selon ses deux réponses (l'appareil du
+        tableau est écarté, § 1). Une ligne ou une colonne creuse dit d'abord que
+        la réponse n'a pas été posée là — la couverture de « regard » varie fort
+        d'un bloc à l'autre, et le tronc n'en porte aucun par construction (§ 3).
+        Aucun <b>test statistique</b> n'y est conduit : avec la moitié des
+        regards manquants, un test parlerait surtout de la lacune.</p>
+      <p><b>Une question face à elle‑même : un dialogue.</b> On ne compte plus
+        des post‑its mais des <b>arêtes</b> : pour chaque connecteur tracé à la
+        main dont les deux extrémités portent une réponse <b>connue</b> (le
+        non‑classé est écarté), la case du couple s'incrémente. La diagonale dit
+        le dialogue d'une catégorie avec elle‑même, le reste le pont entre deux.
+        Restreint aux connecteurs, à l'exclusion des échos : un post‑it répété
+        ailleurs n'est pas un dialogue, c'est la même voix redite. Matrice
+        symétrique, un seul triangle affiché.</p>
     </details>
 
     <details class="md-step md-limits">
@@ -2216,10 +2221,10 @@
         <li>Le tableau est une <b>trace de travail collectif</b> : il porte les
           hésitations, les redites et les partis pris de ses auteur·rices — c'est
           d'ailleurs ce qu'il a d'intéressant. Le <b>tronc</b> n'y est pas
-          un résumé mais un <b>point de départ</b> : il précède les branches de
-          cinq jours, et les échos qui le relient à elles partent
-          de lui dans 125 cas sur 129 — le tableau se lit donc du tronc vers
-          ses développements, non l'inverse.</li>
+          un résumé mais un <b>point de départ</b> : il précède les branches, et
+          la quasi‑totalité des énoncés qu'il partage avec elles y sont plus
+          anciens (mesuré au § 10) — le tableau se lit donc du tronc vers ses
+          développements, non l'inverse.</li>
       </ul>
       <p class="md-note"><b>Reproductibilité.</b> <code>export_miro.json</code> est
         la source, <code>graph.json</code> un produit régénérable :
@@ -2245,7 +2250,7 @@
     <h3>Lire &amp; filtrer</h3>
     <div class="kbd-row"><span>Déplier la légende</span><b>survoler (📌 = garder ouverte)</b></div>
     <div class="kbd-row"><span>Choisir le corpus regardé</span><b>Arborescence : Arbre · Tronc · Branches</b></div>
-    <div class="kbd-row"><span>Choisir ce qui colore la carte</span><b>onglets Quoi ? · Qui ? · Quand ? · Degré · Tissu</b></div>
+    <div class="kbd-row"><span>Choisir ce qui colore la carte</span><b>onglets Quoi ? · Qui ? · Quand ? · Comment ? · Pourquoi ? · Degré · Tissu</b></div>
     <div class="kbd-row"><span>Lire les périodes de travail (bornes exactes au survol)</span><b>« Quand ? » · 4 périodes, du tronc à l’enquête</b></div>
     <div class="kbd-row"><span>Éteindre une catégorie</span><b>décocher sa case</b></div>
     <div class="kbd-row"><span>Mettre une zone en lumière (et s'y rendre)</span><b>cliquer son nom dans la légende</b></div>
