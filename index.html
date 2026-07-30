@@ -268,7 +268,7 @@
   #mini-count.filtered{ color: var(--gold); }
   @keyframes lgfade{ from{ opacity:0; transform:translateX(-4px); } to{ opacity:1; transform:none; } }
 
-  .lg-block{ padding:11px 12px; border-bottom:1px solid var(--border); }
+  .lg-block{ padding:9px 12px; border-bottom:1px solid var(--border); }
   .lg-block:last-child{ border-bottom:none; }
   /* Chaque groupe de la légende dit son rôle : la DISPOSITION (où sont les
      nœuds) n'est pas l'AXE (ce qui les colore). Deux questions, deux blocs. */
@@ -332,7 +332,7 @@
      les liens. La même convention court jusque dans les pastilles de la fiche
      (.chip.rec / .chip.calc) et la ligne du recentrage. */
   .lg-subcap{ font-family: var(--mono); font-size:8px; letter-spacing:.08em; text-transform:uppercase;
-              color: var(--ink-faint); margin:6px 2px 3px 2px; }
+              color: var(--ink-faint); margin:4px 2px 2px 2px; }
   .lg-subcap:first-of-type{ margin-top:1px; }
   .pair.derived .tb{ border-style:dashed; }
   .pair.recorded .tb, .pair .tb.recorded{ border-style:dotted; }
@@ -399,12 +399,12 @@
                     line-height:14px; font-weight:600; display:none; }
   .pair .tb .badge.show{ display:block; }
 
-  .lg-title{ display:flex; justify-content:space-between; align-items:center; margin:11px 2px 5px 2px;
+  .lg-title{ display:flex; justify-content:space-between; align-items:center; margin:6px 2px 4px 2px;
              font-family: var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color: var(--ink-faint); }
   .lg-title .clr{ cursor:pointer; letter-spacing:.04em; }
   .lg-title .clr:hover{ color: var(--gold); }
 
-  .lg-row{ display:flex; align-items:center; gap:7px; padding:5px 4px; border-radius:7px; font-size:11.5px; color: var(--ink-dim); }
+  .lg-row{ display:flex; align-items:center; gap:7px; padding:3.5px 4px; border-radius:7px; font-size:11.5px; color: var(--ink-dim); }
   .lg-row:hover{ background: rgba(255,255,255,0.04); }
   .lg-row input[type=checkbox]{ accent-color: var(--gold); width:13px; height:13px; flex-shrink:0; cursor:pointer; }
   /* Anneau au repos, PLEIN quand sa zone est mise en lumière (clic sur le
@@ -444,6 +444,22 @@
    * compte, épingler-la-légende) reste — mais compte et bascule d'épingle
    * partagent une rangée au lieu de deux, et marges/tailles sont resserrées. */
   #lg-foot{ border-top:1px solid var(--border); padding:7px 12px 6px 12px; flex-shrink:0; }
+  /* La clé des TRAITS : la NATURE d'un lien — le seul repère qui ne dépend ni de
+     l'axe ni de l'étendue. L'icône de l'écho ONDULE comme sur la carte (le geste
+     se reconnaît) ; le connecteur reste droit. Cliquer ouvre la méthode (§ 4). */
+  #lg-traits{ padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid var(--border); }
+  .lg-trait-row{ display:flex; align-items:center; gap:9px; font-size:10.5px; color: var(--ink-dim); padding:1px 3px; border-radius:6px; cursor:pointer; }
+  .lg-trait-row:hover{ color: var(--ink); background: rgba(255,255,255,0.03); }
+  .lg-trait-row b{ color: var(--ink); font-weight:600; }
+  .lg-trait-ico{ width:26px; height:10px; flex-shrink:0; overflow:hidden; color: var(--ink-faint); }
+  .lg-trait-ico svg{ width:26px; height:10px; display:block; }
+  .lg-trait-ico svg path{ fill:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; }
+  .lg-trait-ico.echo{ color: var(--ink-dim); opacity:.8; }
+  .lg-trait-ico.echo svg{ width:52px; }   /* deux périodes : translater d'UNE période fait courir l'onde sans couture */
+  @media (prefers-reduced-motion: no-preference){
+    .lg-trait-ico.echo svg{ animation: lg-wave 2.2s linear infinite; }
+  }
+  @keyframes lg-wave{ from{ transform:translateX(0); } to{ transform:translateX(-13px); } }
   #lg-dense .lbl{ display:flex; align-items:center; gap:7px; font-size:10.5px; color: var(--ink-dim); white-space:nowrap; cursor:pointer; }
   #lg-dense .lbl input{ accent-color: var(--gold); width:12px; height:12px; flex-shrink:0; }
   #pin-info{ display:flex; align-items:center; gap:6px; margin-top:5px; font-size:9.5px; color: var(--ink-dim); }
@@ -1339,6 +1355,19 @@
   </div>
 
   <div id="lg-foot">
+    <!-- La clé des TRAITS : ce que veut dire un fil. Le seul repère constant —
+         la NATURE du lien ne change ni avec l'axe ni avec l'étendue. L'icône de
+         l'écho ondule (comme sur la carte, au zoom proche) ; cliquer ouvre § 4. -->
+    <div id="lg-traits" title="Sur la carte, le fil qui ONDULE est un écho — un même texte répété à deux endroits, que nous avons calculé. Le trait droit et immobile est un connecteur, tracé à la main sur le tableau. Cliquer : la méthode (§ 4).">
+      <div class="lg-trait-row" data-md="md-step-liens">
+        <span class="lg-trait-ico echo"><svg viewBox="0 0 52 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 Q3.25 1.5 6.5 5 T13 5 T19.5 5 T26 5 T32.5 5 T39 5 T45.5 5 T52 5"/></svg></span>
+        <span><b>écho</b> · un même propos, répété</span>
+      </div>
+      <div class="lg-trait-row" data-md="md-step-liens">
+        <span class="lg-trait-ico"><svg viewBox="0 0 26 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 H26"/></svg></span>
+        <span><b>connecteur</b> · tracé à la main</span>
+      </div>
+    </div>
     <div id="lg-dense">
       <!-- Cette case ne commande QUE les étiquettes de proximité, jamais les
            post-its eux-mêmes : le libellé doit le dire. « Affichage des
@@ -1696,7 +1725,7 @@
         axes de lecture, entièrement calculés, sont proposés (§ 5).</p>
     </details>
 
-    <details class="md-step">
+    <details class="md-step" id="md-step-liens">
       <summary><span class="md-n">§ 4</span><span class="md-h">Les liens, et ce qu'ils pèsent</span></summary>
       <p>Deux familles d'arêtes, distinguées à l'écran comme dans les calculs :</p>
       <div class="md-params">
@@ -1727,6 +1756,10 @@
         chaîne</b> (n − 1 arêtes) et non en clique (n(n−1)/2) : la clique dirait la
         même chose tout en gonflant artificiellement le degré des termes les plus
         répétés.</p>
+      <p class="md-note">À l'écran, l'écho se reconnaît sans légende : quand on
+        s'approche, il <b>ondule</b> doucement, là où le connecteur reste droit et
+        immobile — le fil qui bouge est celui que nous avons <b>calculé</b>, pas
+        celui qu'une main a tracé sur le tableau.</p>
       <p>Le <b>degré</b> compte ce qui se voit — connecteurs et fils. Le ressort
         qui retient un post‑it près de sa section (§ 7) n'y entre pas : c'est un
         artifice de mise en page, pas un lien du tableau. La taille d'un nœud
@@ -8566,6 +8599,17 @@ document.getElementById('about-btn').addEventListener('click', () => {
   if (!ficheBuilt) { buildMethodFiche(); ficheBuilt = true; }
   showPane('apropos');
   showAccessibleDialog(modalOverlay, document.getElementById('modal'));
+});
+// La clé des traits (légende) ouvre la méthode au § 4 : la nature d'un lien y est
+// établie. Même mécanique que « à propos », mais on déplie le § et on l'amène en vue.
+document.querySelectorAll('#lg-traits .lg-trait-row').forEach(row => {
+  row.addEventListener('click', () => {
+    if (!ficheBuilt) { buildMethodFiche(); ficheBuilt = true; }
+    showPane('methode');
+    showAccessibleDialog(modalOverlay, document.getElementById('modal'));
+    const step = document.getElementById(row.dataset.md);
+    if (step) { step.open = true; requestAnimationFrame(() => step.scrollIntoView({ block: 'start' })); }
+  });
 });
 const closeModal = () => hideAccessibleDialog(modalOverlay);
 document.getElementById('modal-close').addEventListener('click', closeModal);
