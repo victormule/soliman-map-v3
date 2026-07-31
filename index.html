@@ -649,8 +649,11 @@
   /* Le geste demandé : épingler les étiquettes de CE terme sur la carte —
    * même mécanique que les épingles de la légende (updateLabels les lit
    * toutes deux), mais pour un ensemble de nœuds, pas une catégorie. */
-  #sp-pin{ display:flex; align-items:center; gap:7px; font-size:12px; color: var(--ink-dim); cursor:pointer; }
-  #sp-pin input{ accent-color: var(--gold); width:13px; height:13px; cursor:pointer; }
+  #sp-pin, #gp-pin{ display:flex; align-items:center; gap:7px; font-size:12px; color: var(--ink-dim); cursor:pointer; }
+  #sp-pin input, #gp-pin input{ accent-color: var(--gold); width:13px; height:13px; cursor:pointer; }
+  /* Même case que la recherche, dans l'en-tête d'une zone : elle épingle les
+     étiquettes des post-its de la zone (épingle éphémère, cf. state.zonePinned). */
+  #gp-pin{ margin-top:12px; }
   #sp-body{ padding: 16px 22px 18px; overflow-y:auto; flex:1; min-height:0; }
   /* Répartition selon l'axe COURANT (« Coloré par ») : même lecture que la
    * légende, mais bornée à ce que la recherche a trouvé — pas de case à
@@ -1468,6 +1471,12 @@
       <div class="sp-kicker" id="gp-kicker">groupe</div>
       <div id="gp-title"></div>
       <div id="gp-sub"></div>
+      <!-- Même geste que la recherche : épingler les étiquettes des post-its de
+           CETTE zone sur la carte. Épingle ÉPHÉMÈRE (state.zonePinned), sur le
+           modèle de la case de recherche : elle retombe à la fermeture de la
+           zone. Décocher par ailleurs « Étiquettes des post-its » ne laisse
+           alors que les étiquettes de la zone. -->
+      <label id="gp-pin"><input type="checkbox" id="gp-pin-check"><span>🏷 étiqueter ces post‑its sur la carte</span></label>
     </div>
     <div id="gp-body">
       <!-- L'en-tête de présentation d'une zone « Quoi ? » : les post-its qui
@@ -3007,6 +3016,11 @@ const state = {
   searchPinned: false,
   focusAxis: null,     // 'section' | 'regard' — l'axe de la zone mise en lumière…
   focusKey: null,      // …et sa clé (null = aucune)
+  // La case « étiqueter ces post-its » du volet de zone, sur le MODÈLE de
+  // searchPinned : une épingle ÉPHÉMÈRE, propre à la zone observée, qui retombe
+  // dès qu'on quitte la zone (setFocus la remet à false). Distincte de l'épingle
+  // 🏷 de la ligne de légende (LEGEND[axe].pinned), elle PERSISTANTE.
+  zonePinned: false,
   // Le CADRAGE citable (view=) : une lentille posée par-dessus le cadre calculé
   // automatiquement pour la destination courante — un léger décalage (dx à
   // droite, dy en haut, en fraction du cadre) et un zoom (z > 1 = plus près).
@@ -4245,6 +4259,21 @@ function updateLegendCounts() {
     LEAVES.forEach(n => {
       if (!inScope(n)) return;   // l'étendue ne se contourne pas : elle borne les deux nombres
       if (others.some(a => LEGEND[a].hidden.has(AXES[a].keyOf(n)))) return;
+      // Centré sur un MOT ou un POST-IT : la légende ne compte que ce qui est
+      // sur la carte (résonance / profondeur du recentrage) — même règle que
+      // le compteur.
+      if (!egoVisible(n)) return;
+      // Une zone en lumière (observation) borne le compte VIVANT de TOUS les
+      // axes, le sien compris : la légende dit alors la composition de ce qu'on
+      // observe — « combien de Média dans cette zone » — et CORRESPOND au volet
+      // et au compteur (leurs trois sommes valent la même chose). Contrairement
+      // au filtre (ignoré sur son propre axe pour dire « et si je rallume »),
+      // observer n'a pas de « rallumer » : c'est une seule catégorie, pas des
+      // cases. Sur son axe, les voisines tombent donc à 0 (grisées) — comme sur
+      // la carte, où seule la zone reste allumée.
+      if (state.focusKey && AXES[state.focusAxis].keyOf(n) !== state.focusKey) return;
+      // Une RECHERCHE active borne la légende sur ses trouvés, comme le compteur.
+      if (state.searchMatches && !state.searchMatches.has(n.id)) return;
       const k = AXES[ax].keyOf(n);
       live[k] = (live[k] || 0) + 1;
     });
@@ -4439,6 +4468,11 @@ function syncLegendRows() {
 function setFocus(axis, key) {
   state.focusAxis = key ? axis : null;
   state.focusKey = key || null;
+  // La case « étiqueter » est propre à CHAQUE zone : elle retombe à tout
+  // changement de zone — neuve à l'ouverture d'une autre, éteinte à la
+  // fermeture (comme la case de recherche à la sortie du mot).
+  state.zonePinned = false;
+  const gpPin = document.getElementById('gp-pin-check'); if (gpPin) gpPin.checked = false;
   // La lumière et le volet du groupe s'allument d'un seul geste : ils
   // s'éteignent de même, d'où qu'on éteigne (⟲, Échap, changement d'étendue).
   if (!key) closeGroupPanel();
@@ -4446,8 +4480,15 @@ function setFocus(axis, key) {
     LEGEND[ax].rows.forEach((row, k) =>
       row.classList.toggle('focus', ax === state.focusAxis && k === state.focusKey));
   });
+  // Les comptes par ligne bornent aussi sur la zone : la légende suit ce qu'on
+  // observe, comme le compteur (updateVisuals → updateCount) et le volet.
+  updateLegendCounts();
   updateMini();
   updateVisuals();
+  // L'épingle de zone vient de retomber : ses étiquettes s'effacent et le compte
+  // d'épingles se met à jour tout de suite (sans attendre la boucle d'étiquettes).
+  updateLabels();
+  updatePinInfo();
   syncUrl();
 }
 
@@ -4463,6 +4504,7 @@ function updatePinInfo() {
   let total = 0;
   AXIS_KEYS.forEach(ax => { total += LEGEND[ax].pinned.size; });
   if (state.searchPinned) total += 1;   // une recherche épinglée compte pour une unité, comme une catégorie
+  if (state.zonePinned) total += 1;     // une zone épinglée compte de même — éphémère, elle disparaît à la fermeture
   pinInfoEl.hidden = total === 0;
   pinCountEl.textContent = total;
   miniPinEl.hidden = total === 0;
@@ -4476,6 +4518,9 @@ document.getElementById('pin-clear').addEventListener('click', () => {
   });
   state.searchPinned = false;
   const spPin = document.getElementById('sp-pin-check'); if (spPin) spPin.checked = false;
+  // L'épingle éphémère du volet de zone tombe aussi, et sa case avec.
+  state.zonePinned = false;
+  const gpPin = document.getElementById('gp-pin-check'); if (gpPin) gpPin.checked = false;
   updateLabels();
   updatePinInfo();
   syncUrl();   // plus d'épingles : l'URL cesse de les citer
@@ -4747,7 +4792,16 @@ function updateCount() {
   let k = 0;
   LEAVES.forEach(n => {
     if (!nodeMatchesFilter(n)) return;
-    if (state.lexicalFocus && !state.lexicalFocus.assignments.has(n.id)) return;
+    // Centré sur un MOT (résonance) ou un POST-IT (recentrage) : egoVisible dit
+    // ce qui est vraiment sur la carte — hors sous-corpus ou hors profondeur ne
+    // compte pas. (Il englobe l'ancien test lexicalFocus.)
+    if (!egoVisible(n)) return;
+    // Une zone mise en lumière est un PARAMÈTRE de plus, au même titre qu'une
+    // catégorie décochée : le compteur ne retient qu'elle. « 30 sur 195 »
+    // pendant qu'on lit une zone, comme « 43 sur 195 » sous un filtre.
+    if (state.focusKey && AXES[state.focusAxis].keyOf(n) !== state.focusKey) return;
+    // Une RECHERCHE active borne de même : on compte ses trouvés, pas le reste.
+    if (state.searchMatches && !state.searchMatches.has(n.id)) return;
     k++;
   });
   countNumEl.textContent = k;
@@ -5128,6 +5182,11 @@ function updateVisuals(refreshEdges = true) {
     selDim ? 0.04 : pathDim ? 0.03 : state.lexicalFocus ? 0.08 : ego ? 0.06 : focusDim ? 0.07 : 0.16,
   );
   updateCount();
+  // Les comptes PAR LIGNE de la légende suivent le même ensemble observé que le
+  // compteur (filtres, zone, recherche, recentrage mot/post-it) : légende, volet
+  // et compteur correspondent partout. On saute les images d'intro (elles ne
+  // changent aucun compte) — updateVisuals n'y tourne en boucle que là.
+  if (!intro.running) updateLegendCounts();
   // Le volet de recherche est VIVANT : changer d'axe, cocher/décocher un
   // filtre — tout ce qui appelle déjà updateVisuals — doit s'y répercuter
   // sans revalider. Garde bon marché (faux la quasi-totalité du temps) ; au
@@ -5374,7 +5433,17 @@ function renderConnections(n) {
   // BRUT (all.length), lui, reste ce que rend le bouton « Recentrer ici » :
   // le recentrage ignore les filtres, un voisin masqué y reste un voisin.
   const shown = all
-    .filter(({ id }) => { const nb = nodeById.get(id); return nb && nodeMatchesFilter(nb); })
+    .filter(({ id }) => {
+      const nb = nodeById.get(id);
+      if (!nb || !nodeMatchesFilter(nb)) return false;
+      // En résonance lexicale, un voisin hors du sous-corpus est ÉTEINT sur la
+      // carte (updateVisuals le met à 0) : la fiche ne doit pas promettre un
+      // lien que la carte ne montre pas — « connexions disponibles » vaut ici
+      // aussi. Le recentrage, lui, EXEMPTE le voisinage du nœud choisi de son
+      // voile (les voisins restent allumés) : on ne les retire donc pas.
+      if (state.lexicalFocus && !state.lexicalFocus.assignments.has(id)) return false;
+      return true;
+    })
     .slice()
     .sort((a, b) => (adjacency.get(b.id)?.length || 0) - (adjacency.get(a.id)?.length || 0));
   if (detailConnectionOpenId && !shown.some(({ id }) => id === detailConnectionOpenId)) {
@@ -5443,6 +5512,10 @@ function renderGroupPanel() {
   document.getElementById('gp-sub').textContent =
     `${nodes.length} post‑it${nodes.length > 1 ? 's' : ''} · ${lies} lien${lies > 1 ? 's' : ''} · triés par degré`
     + (meta.hint ? ` · ${meta.hint}` : '');
+
+  // La case « étiqueter ces post‑its » reflète l'épingle ÉPHÉMÈRE de la zone
+  // (state.zonePinned), remise à zéro dès qu'on change de zone (setFocus).
+  document.getElementById('gp-pin-check').checked = state.zonePinned;
 
   // En-tête de PRÉSENTATION (zones « Quoi ? » seulement) : ce que le bloc
   // affichait comme présentation sur le tableau — sorti de la carte, remonté
@@ -6220,7 +6293,8 @@ function buildBranchRow(ids, color, ti, si) {
     activeBranch = opening ? { treeIndex: ti, segIndex: si } : null;
     renderPathPanel();
     updateVisuals();
-    if (opening && !outOfFocus) flyToGroup(ids.map(id => nodeById.get(id)));
+    // Un chemin sélectionné se cadre EN ENTIER (flyToPath), pas au plus serré.
+    if (opening && !outOfFocus) flyToPath(ids.map(id => nodeById.get(id)));
   });
   br.appendChild(row); br.appendChild(steps);
   return br;
@@ -6880,6 +6954,22 @@ function flyToGroup(nodesArr, onDone) {
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3()).length();
   frameCamera(center, approachDir(), Math.max(35, size * 0.65), 1000, onDone);
+}
+
+/**
+ * Cadrer un CHEMIN sélectionné : on veut le voir EN ENTIER, pas plonger dedans.
+ * flyToGroup vise au plus juste (demi-diagonale × 0,65) — bon pour un groupe
+ * compact, mais trop près pour un tracé allongé, dont les extrémités débordent
+ * alors du cadre. On passe donc par distanceToFit (cadrage par FOV, hauteur ET
+ * largeur) avec une marge confortable, pour que tout le chemin respire à l'écran.
+ */
+function flyToPath(nodesArr, onDone) {
+  const nodes = nodesArr.filter(Boolean);
+  if (!nodes.length) { if (onDone) onDone(); return; }
+  const box = new THREE.Box3();
+  nodes.forEach(n => box.expandByPoint(n.__group.position));
+  const center = box.getCenter(new THREE.Vector3());
+  frameCamera(center, approachDir(), Math.max(35, distanceToFit(box, 1.3)), 1000, onDone);
 }
 /**
  * Les bornes de la scène ne dépendent que des POSITIONS des nœuds — pas de
@@ -8315,6 +8405,18 @@ document.getElementById('sp-pin-check').addEventListener('change', (e) => {
   updateLabels();
   updatePinInfo();
   syncUrl();
+});
+
+// La case du volet de zone épingle les étiquettes des post-its de la zone
+// observée, sur le modèle de la case de recherche (searchPinned) : une épingle
+// ÉPHÉMÈRE (state.zonePinned), qui retombe à la fermeture de la zone (setFocus).
+// Décocher par ailleurs « Étiquettes des post-its » ne laisse alors que les
+// étiquettes de la zone.
+document.getElementById('gp-pin-check').addEventListener('change', (e) => {
+  if (!state.groupPanel) return;
+  state.zonePinned = e.target.checked;
+  updateLabels();
+  updatePinInfo();
 });
 
 // ============================================================ Modal / reset / mobile
@@ -9817,6 +9919,15 @@ function updateLabels() {
     state.searchMatches.forEach(id => {
       const n = nodeById.get(id);
       if (n && egoVisible(n)) pinnedIds.add(id);
+    });
+  }
+  // Épingle de ZONE (case du volet, éphémère) : les post-its de la zone
+  // observée, aux mêmes portes que les autres (filtres cumulés + recentrage).
+  if (state.zonePinned && state.focusKey) {
+    leafGroups.forEach(g => {
+      const n = g.userData.node;
+      if (!nodeMatchesFilter(n) || !egoVisible(n)) return;
+      if (AXES[state.focusAxis].keyOf(n) === state.focusKey) pinnedIds.add(n.id);
     });
   }
 
